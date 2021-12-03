@@ -15,10 +15,10 @@ type set struct {
 func main() {
 	s := readInput()
 
-	result, _ := applyOxygenFilter(s, 0)
+	result, _ := applyFilter(s, 0, true)
 	fmt.Printf("Result: %+v\n", result)
 
-	result, _ = applyC02Filter(s, 0)
+	result, _ = applyFilter(s, 0, false)
 	fmt.Printf("Result: %+v\n", result)
 
 }
@@ -52,7 +52,7 @@ func countsAtIndex(s *set, i int) (int, int) {
 	return countZero, len(s.rows) - countZero
 }
 
-func applyOxygenFilter(s *set, index int) (*set, int) {
+func applyFilter(s *set, index int, isOxygenFilter bool) (*set, int) {
 	if len(s.rows) == 1 {
 		return s, index
 	}
@@ -66,6 +66,10 @@ func applyOxygenFilter(s *set, index int) (*set, int) {
 		keepOnes = true
 	} else {
 		keepOnes = true
+	}
+
+	if !isOxygenFilter {
+		keepOnes = !keepOnes
 	}
 
 	// iterate and keep those that we should keep
@@ -84,40 +88,5 @@ func applyOxygenFilter(s *set, index int) (*set, int) {
 		}
 	}
 
-	return applyOxygenFilter(result, index+1)
-}
-
-func applyC02Filter(s *set, index int) (*set, int) {
-	if len(s.rows) == 1 {
-		return s, index
-	}
-
-	countZero, countOne := countsAtIndex(s, index)
-
-	var keepOnes bool
-	if countZero > countOne {
-		keepOnes = true
-	} else if countOne > countZero {
-		keepOnes = false
-	} else {
-		keepOnes = false
-	}
-
-	// iterate and keep those that we should keep
-	result := &set{
-		rows: make([][]int, 0),
-	}
-	for _, row := range s.rows {
-		if keepOnes {
-			if row[index] == 1 {
-				result.rows = append(result.rows, row)
-			}
-		} else {
-			if row[index] == 0 {
-				result.rows = append(result.rows, row)
-			}
-		}
-	}
-
-	return applyC02Filter(result, index+1)
+	return applyFilter(result, index+1, isOxygenFilter)
 }
