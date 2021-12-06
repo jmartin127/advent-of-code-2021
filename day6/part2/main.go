@@ -8,26 +8,38 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
+const (
+	ITERATIONS     = 256
+	CYCLE_DURATION = 7
+)
+
 func main() {
-	// determine number of initial iterations to run
-	totalIterations := 256
-	numInitial := totalIterations % 7
-	fmt.Printf("Num initial iterations %d\n", numInitial)
+	// determine number of initial iterations to run, and how many subsequent cycles
+	totalIterations := ITERATIONS
+	numInitial := totalIterations % CYCLE_DURATION
+	numCycles := (totalIterations - numInitial) / CYCLE_DURATION
+	fmt.Printf("Num initial iterations: %d\n", numInitial)
+	fmt.Printf("Num cycles after initial: %d\n", numCycles)
 
 	// run initial iterations
-	fishAfterInitial := runInitialIterations(numInitial)
+	initialFish := parseInput()
+	fishAfterInitial := runInitialIterations(initialFish, numInitial)
 
+	// count num of occurences of each fish
 	fishByCount := countFish(fishAfterInitial)
 
+	// run remaining iterations
 	currentResult := fishByCount
-	for i := 0; i < 36; i++ {
-		result := run7Iterations(currentResult)
+	for i := 0; i < numCycles; i++ {
+		result := runFullCycle(currentResult)
 		currentResult = result
 	}
-	fmt.Printf("Total %d\n", totalInMap(currentResult))
+	fmt.Printf("Answer %d\n", totalInMap(currentResult))
 }
 
-func runInitialIterations(numInitial int) []int {
+// PART 1 //
+
+func parseInput() []int {
 	filepath := "/Users/jeff.martin@getweave.com/go/src/github.com/jmartin127/advent-of-code-2021/day6/input.txt"
 	list := helpers.ReadFile(filepath)
 
@@ -38,10 +50,10 @@ func runInitialIterations(numInitial int) []int {
 		initialFish = append(initialFish, val)
 	}
 
-	return run(initialFish, numInitial)
+	return initialFish
 }
 
-func run(fish []int, numIterations int) []int {
+func runInitialIterations(fish []int, numIterations int) []int {
 	current := fish
 	for i := 0; i < numIterations; i++ {
 		result := runOneIteration(current)
@@ -63,6 +75,8 @@ func runOneIteration(fish []int) []int {
 	return result
 }
 
+// PART 2 //
+
 func totalInMap(fish map[int]int) int {
 	sum := 0
 	for _, v := range fish {
@@ -71,8 +85,9 @@ func totalInMap(fish map[int]int) int {
 	return sum
 }
 
-// 0 ==> 0 + 2
-// 1 ==> 1 + 3
+// Execute a full cycle (7 iterations), by determining how each fish will reproduce in the next iteration
+// 0 ==> 0 + 2 (prouces another 0 fish, and also a 2 fish after 1 full cycle)
+// 1 ==> 1 + 3 (etc.)
 // 2 ==> 2 + 4
 // 3 ==> 3 + 5
 // 4 ==> 4 + 6
@@ -81,7 +96,7 @@ func totalInMap(fish map[int]int) int {
 
 // 7 ==> 0
 // 8 ==> 1
-func run7Iterations(fish map[int]int) map[int]int {
+func runFullCycle(fish map[int]int) map[int]int {
 	result := make(map[int]int, 0)
 
 	for k, v := range fish {
@@ -107,11 +122,7 @@ func addToMap(fish map[int]int, val int, num int) {
 func countFish(fish []int) map[int]int {
 	initialFish := make(map[int]int, 0)
 	for _, val := range fish {
-		if _, ok := initialFish[val]; ok {
-			initialFish[val] = initialFish[val] + 1
-		} else {
-			initialFish[val] = 1
-		}
+		addToMap(initialFish, val, 1)
 	}
 	return initialFish
 }
