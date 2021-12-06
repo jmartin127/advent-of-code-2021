@@ -9,17 +9,58 @@ import (
 )
 
 func main() {
-	fish := readInputAsMap()
-	for k, v := range fish {
-		fmt.Printf("k=%d, v=%d\n", k, v)
-	}
+	// determine number of initial iterations to run
+	totalIterations := 256
+	numInitial := totalIterations % 7
+	fmt.Printf("Num initial iterations %d\n", numInitial)
 
-	currentResult := fish
+	// run initial iterations
+	fishAfterInitial := runInitialIterations(numInitial)
+
+	fishByCount := countFish(fishAfterInitial)
+
+	currentResult := fishByCount
 	for i := 0; i < 36; i++ {
 		result := run7Iterations(currentResult)
 		currentResult = result
 	}
 	fmt.Printf("Total %d\n", totalInMap(currentResult))
+}
+
+func runInitialIterations(numInitial int) []int {
+	filepath := "/Users/jeff.martin@getweave.com/go/src/github.com/jmartin127/advent-of-code-2021/day6/input.txt"
+	list := helpers.ReadFile(filepath)
+
+	initialFishString := strings.Split(list[0], ",")
+	initialFish := make([]int, 0)
+	for _, valStr := range initialFishString {
+		val, _ := strconv.Atoi(valStr)
+		initialFish = append(initialFish, val)
+	}
+
+	return run(initialFish, numInitial)
+}
+
+func run(fish []int, numIterations int) []int {
+	current := fish
+	for i := 0; i < numIterations; i++ {
+		result := runOneIteration(current)
+		current = result
+	}
+	return current
+}
+
+func runOneIteration(fish []int) []int {
+	result := make([]int, 0)
+	for _, f := range fish {
+		if f == 0 {
+			result = append(result, 6)
+			result = append(result, 8)
+		} else {
+			result = append(result, f-1)
+		}
+	}
+	return result
 }
 
 func totalInMap(fish map[int]int) int {
@@ -63,14 +104,9 @@ func addToMap(fish map[int]int, val int, num int) {
 	}
 }
 
-func readInputAsMap() map[int]int {
-	filepath := "/Users/jeff.martin@getweave.com/go/src/github.com/jmartin127/advent-of-code-2021/day6/input.txt"
-	list := helpers.ReadFile(filepath)
-
-	initialFishString := strings.Split(list[0], ",")
+func countFish(fish []int) map[int]int {
 	initialFish := make(map[int]int, 0)
-	for _, valStr := range initialFishString {
-		val, _ := strconv.Atoi(valStr)
+	for _, val := range fish {
 		if _, ok := initialFish[val]; ok {
 			initialFish[val] = initialFish[val] + 1
 		} else {

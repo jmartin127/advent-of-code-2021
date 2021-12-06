@@ -19,14 +19,8 @@ func main() {
 		initialFish = append(initialFish, val)
 	}
 
-	result := run(initialFish, 4)
+	result := run(initialFish, 80)
 	fmt.Printf("Answer: %d\n", len(result))
-	printResultAsString(result)
-}
-
-func printResultAsString(result []int) {
-	str := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]")
-	fmt.Printf("%s", str)
 }
 
 func run(fish []int, numIterations int) []int {
