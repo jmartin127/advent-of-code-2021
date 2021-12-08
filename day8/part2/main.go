@@ -10,12 +10,12 @@ import (
 )
 
 var POSS_NUMS_BY_LEN = map[int][]int{
-	2: []int{1},
-	4: []int{4},
-	3: []int{7},
-	7: []int{8},
-	5: []int{2, 3, 5},
-	6: []int{0, 6, 9},
+	2: {1},
+	4: {4},
+	3: {7},
+	7: {8},
+	5: {2, 3, 5},
+	6: {0, 6, 9},
 }
 
 const (
@@ -49,16 +49,16 @@ b    .  b    .  .    c  b    c  b    c
 
 */
 var NUMBER_DEFS = map[int][]int{
-	0: []int{TOP, TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
-	1: []int{TOP_RIGHT, BOTTOM_RIGHT},
-	2: []int{TOP, TOP_RIGHT, MIDDLE, BOTTOM_LEFT, BOTTOM},
-	3: []int{TOP, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
-	4: []int{TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT},
-	5: []int{TOP, TOP_LEFT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
-	6: []int{TOP, TOP_LEFT, MIDDLE, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
-	7: []int{TOP, TOP_RIGHT, BOTTOM_RIGHT},
-	8: []int{TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
-	9: []int{TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
+	0: {TOP, TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
+	1: {TOP_RIGHT, BOTTOM_RIGHT},
+	2: {TOP, TOP_RIGHT, MIDDLE, BOTTOM_LEFT, BOTTOM},
+	3: {TOP, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
+	4: {TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT},
+	5: {TOP, TOP_LEFT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
+	6: {TOP, TOP_LEFT, MIDDLE, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
+	7: {TOP, TOP_RIGHT, BOTTOM_RIGHT},
+	8: {TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
+	9: {TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
 }
 
 type possibleValues struct {
@@ -106,15 +106,8 @@ func deduceSum(line string) int {
 
 	b := determineOriginalInputMapping(inputParts)
 
-	// print the mapping to see if we are on the right track... Woo hoo!
-	//b.print()
-
 	// determine what each input value maps to, to narrow down the deduction
 	useInputToFinalizeMapping(b, inputParts)
-
-	// print the mapping to see if we are on the right track... Woo hoo!
-	//b.print()
-
 	panicIfNotDeduced(b)
 
 	// now that we know where each letter goes, map each one to a number
@@ -124,7 +117,6 @@ func deduceSum(line string) int {
 		num := determineNumber(posByCharacter, outputChunk)
 		resultString = resultString + strconv.Itoa(num)
 	}
-	fmt.Printf("Result %s\n", resultString)
 
 	result, _ := strconv.Atoi(resultString)
 
@@ -133,7 +125,6 @@ func deduceSum(line string) int {
 
 func determineNumber(posByCharacter map[string]int, outputChunk string) int {
 	numberTemplate := make([]int, 0)
-	//fmt.Printf("Checking output chunk %s\n", outputChunk)
 	for _, c := range strings.Split(outputChunk, "") {
 		pos := posByCharacter[c]
 		numberTemplate = append(numberTemplate, pos)
@@ -149,7 +140,6 @@ func determineNumber(posByCharacter map[string]int, outputChunk string) int {
 }
 
 func slicesMatch(a []int, b []int) bool {
-	//fmt.Printf("Comparing %+v and %+v\n", a, b)
 	if len(a) != len(b) {
 		return false
 	}
@@ -199,7 +189,6 @@ func useInputToFinalizeMapping(b *board, inputChunks []string) {
 	*/
 	for pos, vals := range b.possibilities {
 		if len(vals.vals) > 1 {
-			//fmt.Printf("Fixing %+v\n", vals.vals)
 			applyLastReduction(b, pos)
 		}
 	}
@@ -210,7 +199,6 @@ func applyLastReduction(b *board, pos int) {
 	for _, pos2 := range b.possibilities {
 		if len(pos2.vals) == 1 {
 			if sliceContains(vals, pos2.vals[0]) {
-				//fmt.Printf("removing %+v, and %+v\n", pos2.vals, vals)
 				b.possibilities[pos].vals = findSecondNotInFirst(pos2.vals, vals)
 				return
 			}
@@ -244,13 +232,11 @@ func useSingleInputToUpdateMapping(b *board, inputChunk string, possibleNums []i
 
 	// check if we were able to narrow down to a single number
 	if len(possibleMatches) != 1 {
-		//fmt.Printf("unable to deduce using input chunk %s\n", inputChunk)
 		return
 	}
 
 	// if we were able to narrow it down, then do further deduction of outstanding characters
 	matchedNum := possibleMatches[0]
-	//fmt.Printf("YES! able to deduce using input chunk %s, matched: %d\n", inputChunk, matchedNum)
 
 	compareTemplateToMatch(inputChunk, matchedNum, pn, b)
 }
@@ -266,7 +252,6 @@ func compareTemplateToMatch(inputChunk string, matchedNum int, pn *partialNumber
 	}
 	chunkParts := strings.Split(inputChunk, "")
 	leftOverFromChunk := findSecondNotInFirst(charsToRemove, chunkParts)
-	//fmt.Printf("Left over %+v\n", leftOverFromChunk)
 
 	// update template with fields that must be filled in for the matched num
 	numDef := NUMBER_DEFS[matchedNum]
@@ -282,7 +267,6 @@ func compareTemplateToMatch(inputChunk string, matchedNum int, pn *partialNumber
 
 		// reduce the induction space to just these values
 		b.possibilities[pos].vals = intersection
-		//fmt.Printf("Setting intersection %+v\n", intersection)
 	}
 }
 
