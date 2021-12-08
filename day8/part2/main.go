@@ -9,25 +9,6 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
-var POSS_NUMS_BY_LEN = map[int][]int{
-	2: {1},
-	4: {4},
-	3: {7},
-	7: {8},
-	5: {2, 3, 5},
-	6: {0, 6, 9},
-}
-
-const (
-	TOP          = 0
-	TOP_LEFT     = 1
-	TOP_RIGHT    = 2
-	MIDDLE       = 3
-	BOTTOM_LEFT  = 4
-	BOTTOM_RIGHT = 5
-	BOTTOM       = 6
-)
-
 /*
   0:      1:      2:      3:      4:
  aaaa    ....    aaaa    aaaa    ....
@@ -59,6 +40,26 @@ var NUMBER_DEFS = map[int][]int{
 	7: {TOP, TOP_RIGHT, BOTTOM_RIGHT},
 	8: {TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_LEFT, BOTTOM_RIGHT, BOTTOM},
 	9: {TOP, TOP_LEFT, TOP_RIGHT, MIDDLE, BOTTOM_RIGHT, BOTTOM},
+}
+
+const (
+	TOP          = 0
+	TOP_LEFT     = 1
+	TOP_RIGHT    = 2
+	MIDDLE       = 3
+	BOTTOM_LEFT  = 4
+	BOTTOM_RIGHT = 5
+	BOTTOM       = 6
+)
+
+// Possible numbers by string length
+var POSS_NUMS_BY_LEN = map[int][]int{
+	2: {1},
+	4: {4},
+	3: {7},
+	7: {8},
+	5: {2, 3, 5},
+	6: {0, 6, 9},
 }
 
 type possibleValues struct {
