@@ -42,10 +42,8 @@ func ReadFileAsInts(filepath string) []int {
 }
 
 func ReadSingleLineFileAsInts(filepath string) []int {
-	list := ReadFile(filepath)
-
 	// convert to ints
-	firstLineParts := strings.Split(list[0], ",")
+	firstLineParts := ReadSingleLineFileAsStrings(filepath)
 	result := make([]int, 0)
 	for _, val := range firstLineParts {
 		intVal, _ := strconv.Atoi(val)
@@ -53,6 +51,11 @@ func ReadSingleLineFileAsInts(filepath string) []int {
 	}
 
 	return result
+}
+
+func ReadSingleLineFileAsStrings(filepath string) []string {
+	list := ReadFile(filepath)
+	return strings.Split(list[0], ",")
 }
 
 func MaxFromList(list []int) int {
