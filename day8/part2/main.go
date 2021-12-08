@@ -124,6 +124,7 @@ func deduceSum(line string) int {
 	return result
 }
 
+// Given that we now know where each character maps on the number template, determine which number it is (given an output chunk (cdfeb))
 func determineNumber(posByCharacter map[string]int, outputChunk string) int {
 	numberTemplate := make([]int, 0)
 	for _, c := range strings.Split(outputChunk, "") {
@@ -138,23 +139,6 @@ func determineNumber(posByCharacter map[string]int, outputChunk string) int {
 	}
 
 	return -1
-}
-
-func slicesMatch(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	sort.Ints(a)
-	sort.Ints(b)
-
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-
-	return true
 }
 
 func panicIfNotDeduced(b *board) {
@@ -178,16 +162,7 @@ func useInputToFinalizeMapping(b *board, inputChunks []string) {
 		useSingleInputToUpdateMapping(b, inputChunk, possibleNums)
 	}
 
-	// check if there are still unresolved parts of the board. resolves these cases:
-	/*
-		key=1, val=&{[f]}
-		key=3, val=&{[a]}
-		key=6, val=&{[d]}
-		key=4, val=&{[d e]}
-		key=2, val=&{[c]}
-		key=5, val=&{[g]}
-		key=0, val=&{[b]}
-	*/
+	// if there are still unresolved parts of the board, deduce them
 	for pos, vals := range b.possibilities {
 		if len(vals.vals) > 1 {
 			applyLastReduction(b, pos)
@@ -195,6 +170,16 @@ func useInputToFinalizeMapping(b *board, inputChunks []string) {
 	}
 }
 
+// check if there are still unresolved parts of the board. resolves cases such as this:
+/*
+	key=1, val=&{[f]}
+	key=3, val=&{[a]}
+	key=6, val=&{[d]}
+	key=4, val=&{[d e]}
+	key=2, val=&{[c]}
+	key=5, val=&{[g]}
+	key=0, val=&{[b]}
+*/
 func applyLastReduction(b *board, pos int) {
 	vals := b.possibilities[pos].vals
 	for _, pos2 := range b.possibilities {
@@ -242,6 +227,11 @@ func useSingleInputToUpdateMapping(b *board, inputChunk string, possibleNums []i
 	compareTemplateToMatch(inputChunk, matchedNum, pn, b)
 }
 
+// this is the core to the algorithm.
+// 1. determines which characters from the input segment are not already in use
+// 2. retrieves which characters are possible at a given position
+// 3. finds the intersection fo the above two lists
+// 4. reduces the list of possible characters to this intersection
 func compareTemplateToMatch(inputChunk string, matchedNum int, pn *partialNumber, b *board) {
 	// reduce chunk to only those that are not required
 	charsToRemove := []string{}
@@ -269,16 +259,6 @@ func compareTemplateToMatch(inputChunk string, matchedNum int, pn *partialNumber
 		// reduce the induction space to just these values
 		b.possibilities[pos].vals = intersection
 	}
-}
-
-func findIntersection(a, b []string) []string {
-	result := make([]string, 0)
-	for _, va := range a {
-		if sliceContains(b, va) {
-			result = append(result, va)
-		}
-	}
-	return result
 }
 
 // Example:
@@ -376,6 +356,16 @@ func findSecondNotInFirst(first []string, second []string) []string {
 	return result
 }
 
+func findIntersection(a, b []string) []string {
+	result := make([]string, 0)
+	for _, va := range a {
+		if sliceContains(b, va) {
+			result = append(result, va)
+		}
+	}
+	return result
+}
+
 func sliceContains(ref []string, val string) bool {
 	for _, r := range ref {
 		if r == val {
@@ -394,4 +384,21 @@ func sliceContainsInt(ref []int, val int) bool {
 	}
 
 	return false
+}
+
+func slicesMatch(a []int, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	sort.Ints(a)
+	sort.Ints(b)
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
