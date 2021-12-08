@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func ReadFile(filepath string) []string {
@@ -38,6 +39,30 @@ func ReadFileAsInts(filepath string) []int {
 	}
 
 	return result
+}
+
+func ReadSingleLineFileAsInts(filepath string) []int {
+	list := ReadFile(filepath)
+
+	// convert to ints
+	firstLineParts := strings.Split(list[0], ",")
+	result := make([]int, 0)
+	for _, val := range firstLineParts {
+		intVal, _ := strconv.Atoi(val)
+		result = append(result, intVal)
+	}
+
+	return result
+}
+
+func MaxFromList(list []int) int {
+	var max int
+	for _, val := range list {
+		if val > max {
+			max = val
+		}
+	}
+	return max
 }
 
 func readLine(input string) int {
