@@ -22,7 +22,7 @@ func main() {
 		for _, stringVal := range vals {
 			v, _ := strconv.Atoi(stringVal)
 			row = append(row, v)
-			basinRow = append(basinRow, 9)
+			basinRow = append(basinRow, -1)
 		}
 		matrix = append(matrix, row)
 		basins = append(basins, basinRow)
@@ -30,12 +30,11 @@ func main() {
 
 	nextBasinVal := 0
 	for i, row := range matrix {
-		for j, val := range row {
-			newBasin := setVal(matrix, basins, i, j, val, nextBasinVal)
-			if newBasin {
+		for j := range row {
+			if basins[i][j] == -1 {
 				nextBasinVal++
-				//fmt.Println("new basin")
 			}
+			greedilyFill(matrix, basins, i, j, nextBasinVal)
 		}
 	}
 
@@ -43,7 +42,7 @@ func main() {
 	for _, row := range basins {
 		for _, val := range row {
 			fmt.Printf("%d", val)
-			if val != 9 {
+			if val != -1 {
 				result[val]++
 			}
 		}
@@ -68,39 +67,28 @@ func main() {
 	fmt.Printf("Final %d\n", top1*top2*top3)
 }
 
-func setVal(matrix [][]int, basins [][]int, i, j int, val int, nextBasinVal int) bool {
-	if matrix[i][j] == 9 {
-		return false
+func greedilyFill(matrix [][]int, basins [][]int, i, j int, nextBasinVal int) {
+	// base case
+	if i == -1 || j == -1 || i > len(matrix)-1 || j > len(matrix[0])-1 || valIsNotFillable(matrix[i][j], basins[i][j]) {
+		return
 	}
 
-	// check above
-	if i > 0 {
-		if matrix[i-1][j] != 9 {
-			basins[i][j] = basins[i-1][j]
-			return false
-		}
-	}
-
-	// check left
-	if j > 0 {
-		if matrix[i][j-1] != 9 {
-			basins[i][j] = basins[i][j-1]
-			return false
-		}
-	}
-
-	// check upper-right diagonal
-	if i > 0 && j < len(matrix[0])-1 {
-		if matrix[i-1][j+1] != 9 {
-			if matrix[i-1][j] == 9 && matrix[i][j+1] == 9 {
-				// skip this basin since it is just a leaky diagonal basin
-			} else {
-				basins[i][j] = basins[i-1][j+1]
-				return false
-			}
-		}
-	}
-
+	// update the current position
 	basins[i][j] = nextBasinVal
-	return true
+
+	// go right
+	greedilyFill(matrix, basins, i, j+1, nextBasinVal)
+
+	// go left
+	greedilyFill(matrix, basins, i, j-1, nextBasinVal)
+
+	// go up
+	greedilyFill(matrix, basins, i-1, j, nextBasinVal)
+
+	// go down
+	greedilyFill(matrix, basins, i+1, j, nextBasinVal)
+}
+
+func valIsNotFillable(val int, basin int) bool {
+	return val == 9 || basin != -1
 }
