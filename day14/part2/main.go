@@ -8,9 +8,13 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
+var inputsAlreadyCalculated map[string]map[rune]int
+
 func main() {
 	filepath := "input.txt"
 	list := helpers.ReadFile(filepath)
+
+	inputsAlreadyCalculated = make(map[string]map[rune]int, 0)
 
 	insertions := make(map[string]rune, 0)
 	for i := 2; i < len(list); i++ {
@@ -53,9 +57,16 @@ func countMostLeast(counts map[rune]int) (int, int) {
 }
 
 func findCountsAfterNIterations(input []rune, insertions map[string]rune, iterationsRemaining int, countByChar map[rune]int) {
+	inputStr := string(input)
+	mapKey := fmt.Sprintf("%s%d", inputStr, iterationsRemaining)
+	if val, ok := inputsAlreadyCalculated[mapKey]; ok {
+		addPrecomputedResultToCounts(val, countByChar)
+		return
+	}
+
 	// add to the counts
 	if iterationsRemaining == 0 {
-		addToCounts(input, countByChar)
+		addToCounts(input, countByChar, iterationsRemaining)
 		return
 	}
 
@@ -69,12 +80,27 @@ func findCountsAfterNIterations(input []rune, insertions map[string]rune, iterat
 	}
 }
 
-func addToCounts(input []rune, countByChar map[rune]int) {
-	numToCount := len(input) - 1
-	for i := 0; i < numToCount; i++ {
-		char := input[i]
-		countByChar[char] = countByChar[char] + 1
+func addPrecomputedResultToCounts(precomupted map[rune]int, countByChar map[rune]int) {
+	for k, v := range precomupted {
+		countByChar[k] = countByChar[k] + v
 	}
+}
+
+func cachePrecomputed(input []rune, iterationsRemaining int) map[rune]int {
+	precomupted := make(map[rune]int, 0)
+	for i := 0; i < len(input)-1; i++ {
+		precomupted[input[i]] = precomupted[input[i]] + 1
+	}
+
+	mapKey := fmt.Sprintf("%s%d", string(input), iterationsRemaining)
+	inputsAlreadyCalculated[mapKey] = precomupted
+
+	return precomupted
+}
+
+func addToCounts(input []rune, countByChar map[rune]int, iterationsRemaining int) {
+	precomupted := cachePrecomputed(input, iterationsRemaining)
+	addPrecomputedResultToCounts(precomupted, countByChar)
 }
 
 func readInsertionLine(line string) (string, rune) {
