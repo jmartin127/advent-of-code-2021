@@ -16,10 +16,37 @@ func main() {
 	fmt.Println("Solution")
 	helpers.PrintIntMatrix(solutionMatrix)
 
-	firstCell := solutionMatrix[0][0]
-	lastCell := solutionMatrix[len(matrix)-1][len(matrix)-1]
-	fmt.Printf("First %d, Last %d\n", firstCell, lastCell)
-	fmt.Printf("Answer %d\n", lastCell-firstCell)
+	fmt.Printf("Answer %d\n", traverseMatrixForCost(solutionMatrix, matrix))
+}
+
+func traverseMatrixForCost(solutionMatrix, matrix [][]int) int {
+	currentI := len(matrix) - 1
+	currentJ := len(matrix) - 1
+	var totalCost int
+	for true {
+		currentCost := matrix[currentI][currentJ]
+		totalCost += currentCost
+
+		// see if we are on one of the edges
+		if currentJ == 0 {
+			currentI = currentI - 1
+		} else if currentI == 0 {
+			currentJ = currentJ - 1
+		} else {
+			aboveVal := solutionMatrix[currentI-1][currentJ]
+			leftVal := solutionMatrix[currentI][currentJ-1]
+			if aboveVal < leftVal {
+				currentI = currentI - 1
+			} else {
+				currentJ = currentJ - 1
+			}
+		}
+
+		if currentI == 0 && currentJ == 0 {
+			break
+		}
+	}
+	return totalCost
 }
 
 func fillSolutionMatrix(solutionMatrix [][]int, matrix [][]int) {
