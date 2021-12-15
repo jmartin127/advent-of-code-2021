@@ -6,65 +6,76 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
+const MAX_VAL = 4294967295 // max of unit32
+
+type cell struct {
+	x        int
+	y        int
+	distance int
+}
+
 func main() {
 	filepath := "input.txt"
 	matrix := helpers.ReadFileAsMatrixOfInts(filepath)
-	helpers.PrintIntMatrix(matrix)
 
-	solutionMatrix := helpers.NewIntMatrixOfSize(len(matrix), len(matrix), 0)
-	fillSolutionMatrix(solutionMatrix, matrix)
-	fmt.Println("Solution")
-	helpers.PrintIntMatrix(solutionMatrix)
-
-	fmt.Printf("Answer %d\n", traverseMatrixForCost(solutionMatrix, matrix))
+	fmt.Printf("Answer %d\n", findMinimumCost(matrix)-matrix[0][0])
 }
 
-func traverseMatrixForCost(solutionMatrix, matrix [][]int) int {
-	currentI := len(matrix) - 1
-	currentJ := len(matrix) - 1
-	var totalCost int
-	for true {
-		currentCost := matrix[currentI][currentJ]
-		totalCost += currentCost
+func isInside(i, j, size int) bool {
+	return i >= 0 && i < size && j >= 0 && j < size
+}
 
-		// see if we are on one of the edges
-		if currentJ == 0 {
-			currentI = currentI - 1
-		} else if currentI == 0 {
-			currentJ = currentJ - 1
-		} else {
-			aboveVal := solutionMatrix[currentI-1][currentJ]
-			leftVal := solutionMatrix[currentI][currentJ-1]
-			if aboveVal < leftVal {
-				currentI = currentI - 1
-			} else {
-				currentJ = currentJ - 1
+// Dikjkstra's algorithm
+// Reference: https://www.geeksforgeeks.org/minimum-cost-path-left-right-bottom-moves-allowed/
+func findMinimumCost(matrix [][]int) int {
+	distanceMatrix := helpers.NewIntMatrixOfSize(len(matrix), len(matrix), MAX_VAL)
+	dx := []int{-1, 0, 1, 0}
+	dy := []int{0, 1, 0, -1}
+	set := []*cell{&cell{x: 0, y: 0, distance: 0}}
+	distanceMatrix[0][0] = matrix[0][0]
+
+	for len(set) > 0 {
+		var k *cell
+		k, set = popFirst(set)
+
+		for i := 0; i < 4; i++ {
+			x := k.x + dx[i]
+			y := k.y + dy[i]
+
+			if !isInside(x, y, len(matrix)) {
+				continue
+			}
+
+			if distanceMatrix[x][y] > (distanceMatrix[k.x][k.y] + matrix[x][y]) {
+				if distanceMatrix[x][y] != MAX_VAL {
+					set = removeFromSet(set, x, y, distanceMatrix[x][y])
+				}
+
+				distanceMatrix[x][y] = distanceMatrix[k.x][k.y] + matrix[x][y]
+				set = append(set, &cell{x: x, y: y, distance: distanceMatrix[x][y]})
 			}
 		}
-
-		if currentI == 0 && currentJ == 0 {
-			break
-		}
 	}
-	return totalCost
+
+	return distanceMatrix[len(matrix)-1][len(matrix)-1]
 }
 
-func fillSolutionMatrix(solutionMatrix [][]int, matrix [][]int) {
-	solutionMatrix[0][0] = matrix[0][0]
-
-	for j := 1; j < len(matrix); j++ {
-		solutionMatrix[0][j] = matrix[0][j] + solutionMatrix[0][j-1]
-	}
-
-	for i := 1; i < len(matrix); i++ {
-		solutionMatrix[i][0] = matrix[i][0] + solutionMatrix[i-1][0]
-	}
-
-	for i := 1; i < len(matrix); i++ {
-		for j := 1; j < len(matrix); j++ {
-			solutionMatrix[i][j] = matrix[i][j] + minimum(solutionMatrix[i-1][j], solutionMatrix[i][j-1])
+func removeFromSet(set []*cell, x, y, distance int) []*cell {
+	for i, c := range set {
+		if c.x == x && c.y == y && c.distance == distance {
+			return removeFromSlice(set, i)
 		}
 	}
+
+	return set
+}
+
+func removeFromSlice(set []*cell, pos int) []*cell {
+	return append(set[:pos], set[pos+1:]...)
+}
+
+func popFirst(set []*cell) (*cell, []*cell) {
+	return set[0], set[1:]
 }
 
 func minimum(a, b int) int {
