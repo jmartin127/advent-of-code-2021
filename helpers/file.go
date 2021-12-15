@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -41,6 +42,22 @@ func ReadFileAsInts(filepath string) []int {
 	return result
 }
 
+func ReadFileAsMatrixOfInts(filepath string) [][]int {
+	list := ReadFile(filepath)
+
+	matrix := make([][]int, 0)
+	for _, line := range list {
+		row := make([]int, 0)
+		for _, v := range strings.Split(line, "") {
+			i, _ := strconv.Atoi(v)
+			row = append(row, i)
+		}
+		matrix = append(matrix, row)
+	}
+
+	return matrix
+}
+
 func ReadSingleLineFileAsInts(filepath string) []int {
 	// convert to ints
 	firstLineParts := ReadSingleLineFileAsStrings(filepath)
@@ -66,6 +83,28 @@ func MaxFromList(list []int) int {
 		}
 	}
 	return max
+}
+
+func NewIntMatrixOfSize(numRows int, numCols int, initVal int) [][]int {
+	result := make([][]int, 0)
+	for i := 0; i < numRows; i++ {
+		row := make([]int, 0)
+		for j := 0; j < numCols; j++ {
+			row = append(row, initVal)
+		}
+		result = append(result, row)
+	}
+
+	return result
+}
+
+func PrintIntMatrix(matrix [][]int) {
+	for _, row := range matrix {
+		for _, v := range row {
+			fmt.Printf("%d ", v)
+		}
+		fmt.Println()
+	}
 }
 
 func readLine(input string) int {
