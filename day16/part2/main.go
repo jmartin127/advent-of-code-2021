@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -37,7 +38,7 @@ func main() {
 	binaryStr := convertToBinary(input)
 	fmt.Printf("Binary %s\n", binaryStr)
 
-	result, _ := run(binaryStr, 0)
+	result, _ := run(binaryStr, 0, -1)
 	var total int
 	for _, v := range result {
 		total = total + v
@@ -45,41 +46,37 @@ func main() {
 	fmt.Printf("Answer %d\n", total)
 }
 
-func run(binaryStr string, startIndex int) ([]int, int) {
+func run(binaryStr string, startIndex int, numSubpackets int) ([]int, int) {
 	subPacketValues := make([]int, 0)
 
 	currentIndex := startIndex
 	for true {
-		if currentIndex >= len(binaryStr)-1 || isRemainingZero(binaryStr, currentIndex) {
+		// stop iterating if we have reached the number of desired sub-packets
+		if numSubpackets != -1 && len(subPacketValues) >= numSubpackets {
 			return subPacketValues, currentIndex
 		}
+
+		// stop iterating if we have reached the end
+		remainingChars := len(binaryStr) - currentIndex
+		if remainingChars < 6 || isRemainingZero(binaryStr, currentIndex) {
+			return subPacketValues, currentIndex
+		}
+
 		newIndex, version, theType := readHeader(binaryStr, currentIndex)
 		currentIndex = newIndex
-		fmt.Println("******************************")
-		fmt.Printf("Version %d\n", version)
-		fmt.Printf("Type %d\n", theType)
+		fmt.Printf("Header: version=%d,type=%d,index=%d\n", version, theType, currentIndex)
 
-		switch theType {
-		case 4:
-			newIndex, val := applyTypeFour(binaryStr, currentIndex)
-			currentIndex = newIndex
-			fmt.Printf("Appending for case 4, value %d\n", val)
-			subPacketValues = append(subPacketValues, val)
-		default:
-			newIndex, val := applyOtherTypes(theType, binaryStr, currentIndex)
-			currentIndex = newIndex
-			fmt.Printf("Appending for case %d, value %d\n", theType, val)
-			subPacketValues = append(subPacketValues, val)
-			fmt.Printf("NEW INDEX %d\n", newIndex)
-		}
+		newIndex, val := applyType(theType, binaryStr, currentIndex)
+		currentIndex = newIndex
+		subPacketValues = append(subPacketValues, val)
 	}
 
-	fmt.Printf("NOOOOOOOOOOO!!!!!!!")
-	return []int{}, -1 // shouldn't happen
+	log.Fatal("shoudn't be possible")
+	return []int{}, -1
 }
 
 func isRemainingZero(input string, index int) bool {
-	remaining := input[index : len(input)-1]
+	remaining := input[index:len(input)]
 	for _, c := range strings.Split(remaining, "") {
 		if c != "0" {
 			return false
@@ -88,11 +85,16 @@ func isRemainingZero(input string, index int) bool {
 	return true
 }
 
-func applyOtherTypes(theType int, input string, index int) (int, int) {
+func applyType(theType int, input string, index int) (int, int) {
+	if theType == 4 {
+		newIndex, result := applyTypeFour(input, index)
+		index = newIndex
+		return index, result
+	}
+
 	lengthTypeId := input[index : index+1]
 	index++
-
-	fmt.Printf("Length Type ID %s\n", lengthTypeId)
+	fmt.Printf("LengthTypeID = %s\n", lengthTypeId)
 
 	var subpacketVals []int
 	if lengthTypeId == "0" {
@@ -100,34 +102,25 @@ func applyOtherTypes(theType int, input string, index int) (int, int) {
 		lengthInBits := input[index : index+15]
 		index += 15
 		lengthOfSubpackets := binaryToDecimal(lengthInBits)
-		fmt.Printf("lengthOfSubpackets %d\n", lengthOfSubpackets)
-		fmt.Printf("sub-packets %s\n", input[index:index+lengthOfSubpackets])
+		fmt.Printf("%d bits = %s = %d in length\n", 15, lengthInBits, lengthOfSubpackets)
+		fmt.Printf("Length %d: %s\n", lengthOfSubpackets, input[index:index+lengthOfSubpackets])
 
 		// read the subpackets
 		newInput := input[0 : index+lengthOfSubpackets]
-		newSubs, newIndex := run(newInput, index)
-		index = newIndex
-		subpacketVals = newSubs
+		subpacketVals, index = run(newInput, index, -1)
 	} else {
 		// If the length type ID is 1, then the next 11 bits are a number that represents the number of sub-packets immediately contained by this packet.
 		numOfSubPacketsInBits := input[index : index+11]
 		index += 11
 
 		numOfSubPackets := binaryToDecimal(numOfSubPacketsInBits)
-		fmt.Printf("numOfSubPackets %d\n", numOfSubPackets)
-		for i := 0; i < numOfSubPackets; i++ {
-			newSubs, newIndex := run(input, index)
-			index = newIndex
-			fmt.Printf("Appending!  %+v\n", newSubs)
-			subpacketVals = append(subpacketVals, newSubs...)
-		}
+		fmt.Printf("11 bits = %s = %d subpackets\n", numOfSubPacketsInBits, numOfSubPackets)
+		subpacketVals, index = run(input, index, numOfSubPackets)
 	}
 
-	fmt.Printf("Running for type %d and values %+v\n", theType, subpacketVals)
 	var result int
 	switch theType {
 	case 0:
-		// Packets with type ID 0 are sum packets - their value is the sum of the values of their sub-packets. If they only have a single sub-packet, their value is the value of the sub-packet.
 		result = applyTypeZero(subpacketVals)
 	case 1:
 		result = applyTypeOne(subpacketVals)
@@ -187,6 +180,10 @@ func applyTypeThree(subpacketVals []int) int {
 
 // Packets with type ID 5 are greater than packets - their value is 1 if the value of the first sub-packet is greater than the value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two sub-packets.
 func applyTypeFive(subpacketVals []int) int {
+	if len(subpacketVals) != 2 {
+		log.Fatalf("Expected only 2 for greater than. Got %+v", subpacketVals)
+	}
+
 	if subpacketVals[0] > subpacketVals[1] {
 		return 1
 	}
@@ -195,6 +192,10 @@ func applyTypeFive(subpacketVals []int) int {
 
 // Packets with type ID 6 are less than packets - their value is 1 if the value of the first sub-packet is less than the value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two sub-packets.
 func applyTypeSix(subpacketVals []int) int {
+	if len(subpacketVals) != 2 {
+		log.Fatalf("Expected only 2 for less than. Got %+v", subpacketVals)
+	}
+
 	if subpacketVals[0] < subpacketVals[1] {
 		return 1
 	}
@@ -203,6 +204,10 @@ func applyTypeSix(subpacketVals []int) int {
 
 // Packets with type ID 7 are equal to packets - their value is 1 if the value of the first sub-packet is equal to the value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two sub-packets.
 func applyTypeSeven(subpacketVals []int) int {
+	if len(subpacketVals) != 2 {
+		log.Fatalf("Expected only 2 for equals. Got %+v", subpacketVals)
+	}
+
 	if subpacketVals[0] == subpacketVals[1] {
 		return 1
 	}
@@ -223,6 +228,8 @@ func applyTypeFour(input string, index int) (int, int) {
 		if isLastGroupIndicator == "1" {
 			// not the last group, continue
 		} else { // is the last group
+			literal := binaryToDecimal(binaryStr)
+			fmt.Printf("\tLiteral: %s = %d\n", binaryStr, literal)
 			return index, binaryToDecimal(binaryStr)
 		}
 	}
