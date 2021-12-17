@@ -98,10 +98,48 @@ func NewIntMatrixOfSize(numRows int, numCols int, initVal int) [][]int {
 	return result
 }
 
+func NewStringMatrixOfSize(numRows int, numCols int, initVal string) [][]string {
+	result := make([][]string, 0)
+	for i := 0; i < numRows; i++ {
+		row := make([]string, 0)
+		for j := 0; j < numCols; j++ {
+			row = append(row, initVal)
+		}
+		result = append(result, row)
+	}
+
+	return result
+}
+
 func PrintIntMatrix(matrix [][]int) {
-	for _, row := range matrix {
+	for i := len(matrix) - 1; i >= 0; i-- {
+		row := matrix[i]
 		for _, v := range row {
 			fmt.Printf("%d ", v)
+		}
+		fmt.Println()
+	}
+}
+
+const (
+	WarningColor = "\033[1;33m%s\033[0m"
+	ErrorColor   = "\033[1;31m%s\033[0m"
+	DebugColor   = "\033[0;36m%s\033[0m"
+)
+
+func PrintStringMatrix(matrix [][]string) {
+	for i := len(matrix) - 1; i >= 0; i-- {
+		row := matrix[i]
+		for _, v := range row {
+			if v == "#" {
+				fmt.Printf(WarningColor, v)
+			} else if v == "T" {
+				fmt.Printf(ErrorColor, v)
+			} else if v == "S" {
+				fmt.Printf(DebugColor, v)
+			} else {
+				fmt.Printf("%s", v)
+			}
 		}
 		fmt.Println()
 	}
