@@ -8,7 +8,7 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
-var MAX_STEPS = 20
+var MAX_STEPS = 600
 
 type targetArea struct {
 	x1 int
@@ -36,16 +36,15 @@ func main() {
 	ta := parseTargetArea(list[0])
 	fmt.Printf("Target %+v\n", ta)
 
-	// highest, hit := simulateTrajectory(7, 2, ta, true)
-	// fmt.Printf("hit %t, hightest %d\n", hit, highest)
+	answer := runMultipleSimultations(ta)
+	fmt.Printf("Answer %d\n", answer)
+}
 
-	// answer := runMultipleSimultations(ta)
-	// fmt.Printf("Answer %d\n", answer)
-
+func printIt(ta *targetArea) {
 	fmt.Printf("Path:\n")
 	matrixSize := 400
 	startX := 18
-	startY := 5
+	startY := 6
 	matrixOffset := 150
 	m := helpers.NewStringMatrixOfSize(matrixSize, matrixSize, ".")
 	_, _, path := simulateTrajectory(startX, startY, ta, true)
@@ -70,7 +69,6 @@ func runMultipleSimultations(ta *targetArea) int {
 		for j := -1000; j < 1000; j++ {
 			highestY, hit, _ := simulateTrajectory(i, j, ta, false)
 			if hit {
-				fmt.Printf("hit at x=%d,y=%d, currentHighestY=%d, maxY=%d\n", i, j, highestY, overallHighestY)
 				overallHighestY = max(highestY, overallHighestY)
 			}
 		}
