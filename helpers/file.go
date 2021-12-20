@@ -121,6 +121,20 @@ func PrintIntMatrix(matrix [][]int) {
 	}
 }
 
+func PrintIntMatrixAsHashes(matrix [][]int) {
+	for i := 0; i < len(matrix); i++ {
+		row := matrix[i]
+		for _, v := range row {
+			if v == 0 {
+				fmt.Printf("%s", ".")
+			} else {
+				fmt.Printf("%s", "#")
+			}
+		}
+		fmt.Println()
+	}
+}
+
 const (
 	WarningColor = "\033[1;33m%s\033[0m"
 	ErrorColor   = "\033[1;31m%s\033[0m"
