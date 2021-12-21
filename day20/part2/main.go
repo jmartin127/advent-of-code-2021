@@ -17,20 +17,26 @@ func main() {
 
 	algo, m := parseInput(list)
 	paddedMatrix := addPaddingToMatrix(m, PADDING, 0)
-	answer := enhanceNtimes(NUM_ENHANCEMENTS, paddedMatrix, algo, len(m))
+	answer := enhanceNtimes(NUM_ENHANCEMENTS, paddedMatrix, algo, len(m), PADDING)
 	fmt.Printf("Answer %d\n", answer)
 }
 
-func enhanceNtimes(n int, paddedMatrix [][]int, algo []bool, originalSize int) int {
+func enhanceNtimes(n int, paddedMatrix [][]int, algo []bool, originalSize int, paddingWidth int) int {
 	currentMatrix := paddedMatrix
 	prevSize := originalSize
 	var answer int
 	for i := 0; i < n; i++ {
 		currentMatrix, prevSize, answer = enhanceImage(currentMatrix, algo, prevSize)
+		paddingWidth--
+		alternatePaddingValues(currentMatrix, paddingWidth)
 		fmt.Printf("Iteration %d Count %d\n", i, answer)
 	}
 
 	return answer
+}
+
+func isEven(val int) bool {
+	return val%2 == 0
 }
 
 func enhanceImage(paddedMatrix [][]int, algo []bool, prevSize int) ([][]int, int, int) {
@@ -57,6 +63,26 @@ func enhanceImage(paddedMatrix [][]int, algo []bool, prevSize int) ([][]int, int
 		}
 	}
 	return newPadded, enhancedSize, count
+}
+
+// swaps the 0/1 values for the cells within the padding area
+func alternatePaddingValues(matrix [][]int, paddingWidth int) {
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix); j++ {
+			if isInPaddingArea(i, j, paddingWidth, len(matrix)) {
+				if matrix[i][j] == 0 {
+					matrix[i][j] = 1
+				} else {
+					matrix[i][j] = 0
+				}
+			}
+		}
+	}
+}
+
+func isInPaddingArea(i, j int, paddingWidth int, matrixSize int) bool {
+	isInterior := i >= paddingWidth && i < matrixSize-paddingWidth && j >= paddingWidth && j < matrixSize-paddingWidth
+	return !isInterior
 }
 
 func copyMatrix(matrix [][]int) [][]int {
