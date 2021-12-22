@@ -25,14 +25,20 @@ type permutation struct {
 	pos2 *operation
 }
 
-// TODO need 24 of these, but which ones?
-// var permutations = []*permutation{
-// 	{pos0: &operation{sourcePos: 0, negative: false}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 2, negative: false}}, // x,y,z
-// 	{pos0: &operation{sourcePos: 0, negative: true}, pos1: &operation{sourcePos: 2, negative: true}, pos2: &operation{sourcePos: 1, negative: true}},    // -x,-z,-y
-// 	{pos0: &operation{sourcePos: 2, negative: true}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 0, negative: false}},  // -z,y,x
-// 	{pos0: &operation{sourcePos: 2, negative: false}, pos1: &operation{sourcePos: 1, negative: true}, pos2: &operation{sourcePos: 0, negative: false}},  // z,-y,x
-// 	{pos0: &operation{sourcePos: 1, negative: true}, pos1: &operation{sourcePos: 2, negative: false}, pos2: &operation{sourcePos: 0, negative: true}},   // -y,z,-x
-// }
+var permutations = []*permutation{}
+
+// d = just take difference
+// m = multiply by -1, then take difference
+var combinationsOfMatchTypes = [][]string{
+	{"d", "d", "d"},
+	{"d", "d", "m"},
+	{"d", "m", "d"},
+	{"d", "m", "m"},
+	{"m", "d", "d"},
+	{"m", "d", "m"},
+	{"m", "m", "d"},
+	{"m", "m", "m"},
+}
 
 func (s *scanner) print() {
 	fmt.Printf("--- scanner %d ---\n", s.id)
@@ -43,16 +49,36 @@ func (s *scanner) print() {
 }
 
 func main() {
-	rotations := generate24PossibleRotations([]string{"x", "y", "z"})
-	permutations := make([]*permutation, 0)
-	for _, rotation := range rotations {
-		perm := convertRotationToPermutation(rotation)
-		permutations = append(permutations, perm)
-	}
-
+	setPermutations()
 	list := helpers.ReadFile("input.txt")
 	scanners := parseScanners(list)
-	scanners[0].rotateScanner(permutations)
+	scanners[1].scannersMatch(scanners[4])
+
+	// Next steps:
+	// 0. Stop iterating once match is found (rather than printf)
+	// 1. Once a match is found with a scanner relative to zero, LOCK that position in place (map of scanner position --> locked in position)
+	// 2. Then compare to locked in positions and continue to lock in until all scanners are locked in.
+	// 3. Once all scanners are locked in (relative to 0), loop through and obtain increment common beacon map (relative to 0)
+}
+
+func setPermutations() {
+	rotations := generate24PossibleRotations([]string{"x", "y", "z"})
+	perms := make([]*permutation, 0)
+	for _, rotation := range rotations {
+		perm := convertRotationToPermutation(rotation)
+		perms = append(perms, perm)
+	}
+	permutations = perms
+}
+
+func (s *scanner) scannersMatch(other *scanner) bool {
+	for i, perm := range permutations {
+		fmt.Printf("perm %d\n", i)
+		other = other.applyPermutation(perm)
+		s.scannersMatchAtCurrentPosition(other)
+	}
+
+	return false // TODO
 }
 
 /*
@@ -60,47 +86,71 @@ Options:
 1) just take the diff
 2) multiple by -1, then take diff
 */
-func (s *scanner) scannersMatch(other *scanner) {
-	diffMap := make(map[string]int, 0)
-
-	// do a pair-wise comparison of every beacon, just taking the diffs
-	for _, bp := range s.beaconPositions {
-		for _, otherBp := range other.beaconPositions {
-			diff := make([]int, 0)
-			for pos := 0; pos < 3; pos++ {
-				diff = append(diff, otherBp[pos]-bp[pos])
-			}
-			key := convertIntArrayToString(diff)
-			if _, ok := diffMap[key]; ok {
-				diffMap[key] = diffMap[key] + 1
-			} else {
-				diffMap[key] = 1
+func (s *scanner) scannersMatchAtCurrentPosition(other *scanner) {
+	// try each combination at each position (e.g., d,d,m)
+	for _, matchType := range combinationsOfMatchTypes {
+		// do a pair-wise comparison of every beacon, just taking the diffs
+		diffMap := make(map[string]int, 0)
+		for _, bp := range s.beaconPositions {
+			for _, otherBp := range other.beaconPositions {
+				diff := make([]int, 0)
+				for pos := 0; pos < 3; pos++ {
+					diffType := matchType[pos]
+					if diffType == "d" {
+						diff = append(diff, otherBp[pos]-bp[pos])
+					} else { // m
+						diff = append(diff, (otherBp[pos]*-1)-bp[pos])
+					}
+				}
+				incrementMap(diffMap, convertIntArrayToString(diff))
 			}
 		}
+		// check if any of these occur more than N number of times
+		if hasOverlap, relativePos := findOverlap(diffMap); hasOverlap {
+			fmt.Printf("1st approach match %+v\n", relativePos) // TODO
+		}
 	}
+}
 
-	// check if any of these occur more than
-
+func incrementMap(diffMap map[string]int, key string) {
+	if _, ok := diffMap[key]; ok {
+		diffMap[key] = diffMap[key] + 1
+	} else {
+		diffMap[key] = 1
+	}
 }
 
 // By finding pairs of scanners that both see at least 12 of the same beacons, you can assemble the entire map.
-func findOverlap(input map[string]int) {
+func findOverlap(input map[string]int) (bool, []int) {
 	for k, v := range input {
 		if v >= 12 {
-			fmt.Printf("Found %s\n", k)
+			return true, findRelativePosition(convertStringToIntArray(k)) // TODO perhaps in the -1 case, may NOT want to invert the value
 		}
 	}
+	return false, []int{}
+}
+
+func findRelativePosition(input []int) []int {
+	result := make([]int, 0)
+	for _, v := range input {
+		result = append(result, v*-1)
+	}
+
+	return result
 }
 
 func convertIntArrayToString(input []int) string {
 	return strconv.Itoa(input[0]) + "," + strconv.Itoa(input[1]) + "," + strconv.Itoa(input[2])
 }
 
-func (s *scanner) rotateScanner(permutations []*permutation) {
-	for _, p := range permutations {
-		newScanner := s.applyPermutation(p)
-		newScanner.print()
+func convertStringToIntArray(input string) []int {
+	vals := strings.Split(input, ",")
+	result := make([]int, 0)
+	for _, v := range vals {
+		i, _ := strconv.Atoi(v)
+		result = append(result, i)
 	}
+	return result
 }
 
 func (s *scanner) applyPermutation(p *permutation) *scanner {
