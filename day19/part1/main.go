@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
 type scanner struct {
@@ -42,9 +40,11 @@ func (s *scanner) print() {
 }
 
 func main() {
-	list := helpers.ReadFile("input.txt")
-	scanners := parseScanners(list)
-	scanners[0].rotateScanner()
+	test([]string{"x", "y", "z"})
+
+	// list := helpers.ReadFile("input.txt")
+	// scanners := parseScanners(list)
+	// scanners[0].rotateScanner()
 }
 
 /*
@@ -182,4 +182,36 @@ func parseInts(line string) []int {
 	y, _ := strconv.Atoi(vals[1])
 	z, _ := strconv.Atoi(vals[2])
 	return []int{x, y, z}
+}
+
+// https://stackoverflow.com/questions/16452383/how-to-get-all-24-rotations-of-a-3-dimensional-array
+func test(v []string) {
+	for i := 0; i < 2; i++ {
+		for j := 0; j < 3; j++ {
+			v = roll(v)
+			fmt.Printf("%+v\n", v)
+			for k := 0; k < 3; k++ {
+				v = turn(v)
+				fmt.Printf("%+v\n", v)
+			}
+		}
+		v = roll(turn(roll(v)))
+	}
+}
+
+var flipMapping = map[string]string{
+	"x":  "-x",
+	"y":  "-y",
+	"z":  "-z",
+	"-x": "x",
+	"-y": "y",
+	"-z": "z",
+}
+
+func roll(input []string) []string {
+	return []string{input[0], input[2], flipMapping[input[1]]}
+}
+
+func turn(input []string) []string {
+	return []string{flipMapping[input[1]], input[0], input[2]}
 }
