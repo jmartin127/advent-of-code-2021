@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
+
+	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
 type scanner struct {
@@ -23,13 +26,13 @@ type permutation struct {
 }
 
 // TODO need 24 of these, but which ones?
-var permutations = []*permutation{
-	{pos0: &operation{sourcePos: 0, negative: false}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 2, negative: false}}, // x,y,z
-	{pos0: &operation{sourcePos: 0, negative: true}, pos1: &operation{sourcePos: 2, negative: true}, pos2: &operation{sourcePos: 1, negative: true}},    // -x,-z,-y
-	{pos0: &operation{sourcePos: 2, negative: true}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 0, negative: false}},  // -z,y,x
-	{pos0: &operation{sourcePos: 2, negative: false}, pos1: &operation{sourcePos: 1, negative: true}, pos2: &operation{sourcePos: 0, negative: false}},  // z,-y,x
-	{pos0: &operation{sourcePos: 1, negative: true}, pos1: &operation{sourcePos: 2, negative: false}, pos2: &operation{sourcePos: 0, negative: true}},   // -y,z,-x
-}
+// var permutations = []*permutation{
+// 	{pos0: &operation{sourcePos: 0, negative: false}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 2, negative: false}}, // x,y,z
+// 	{pos0: &operation{sourcePos: 0, negative: true}, pos1: &operation{sourcePos: 2, negative: true}, pos2: &operation{sourcePos: 1, negative: true}},    // -x,-z,-y
+// 	{pos0: &operation{sourcePos: 2, negative: true}, pos1: &operation{sourcePos: 1, negative: false}, pos2: &operation{sourcePos: 0, negative: false}},  // -z,y,x
+// 	{pos0: &operation{sourcePos: 2, negative: false}, pos1: &operation{sourcePos: 1, negative: true}, pos2: &operation{sourcePos: 0, negative: false}},  // z,-y,x
+// 	{pos0: &operation{sourcePos: 1, negative: true}, pos1: &operation{sourcePos: 2, negative: false}, pos2: &operation{sourcePos: 0, negative: true}},   // -y,z,-x
+// }
 
 func (s *scanner) print() {
 	fmt.Printf("--- scanner %d ---\n", s.id)
@@ -40,11 +43,16 @@ func (s *scanner) print() {
 }
 
 func main() {
-	test([]string{"x", "y", "z"})
+	rotations := generate24PossibleRotations([]string{"x", "y", "z"})
+	permutations := make([]*permutation, 0)
+	for _, rotation := range rotations {
+		perm := convertRotationToPermutation(rotation)
+		permutations = append(permutations, perm)
+	}
 
-	// list := helpers.ReadFile("input.txt")
-	// scanners := parseScanners(list)
-	// scanners[0].rotateScanner()
+	list := helpers.ReadFile("input.txt")
+	scanners := parseScanners(list)
+	scanners[0].rotateScanner(permutations)
 }
 
 /*
@@ -88,7 +96,7 @@ func convertIntArrayToString(input []int) string {
 	return strconv.Itoa(input[0]) + "," + strconv.Itoa(input[1]) + "," + strconv.Itoa(input[2])
 }
 
-func (s *scanner) rotateScanner() {
+func (s *scanner) rotateScanner(permutations []*permutation) {
 	for _, p := range permutations {
 		newScanner := s.applyPermutation(p)
 		newScanner.print()
@@ -184,19 +192,50 @@ func parseInts(line string) []int {
 	return []int{x, y, z}
 }
 
+// convert -x,-z,-y --> pos0: &operation{sourcePos: 0, negative: true}, pos1: &operation{sourcePos: 2, negative: true}, pos2: &operation{sourcePos: 1, negative: true}
+func convertRotationToPermutation(rotation []string) *permutation {
+	pos0op := convertLetterToOperation(rotation[0])
+	pos1op := convertLetterToOperation(rotation[1])
+	pos2op := convertLetterToOperation(rotation[2])
+
+	return &permutation{pos0: pos0op, pos1: pos1op, pos2: pos2op}
+}
+
+func convertLetterToOperation(letter string) *operation {
+	switch letter {
+	case "-x":
+		return &operation{sourcePos: 0, negative: true}
+	case "-y":
+		return &operation{sourcePos: 1, negative: true}
+	case "-z":
+		return &operation{sourcePos: 2, negative: true}
+	case "x":
+		return &operation{sourcePos: 0, negative: false}
+	case "y":
+		return &operation{sourcePos: 1, negative: false}
+	case "z":
+		return &operation{sourcePos: 2, negative: false}
+	default:
+		log.Fatal("oops")
+		return nil
+	}
+}
+
 // https://stackoverflow.com/questions/16452383/how-to-get-all-24-rotations-of-a-3-dimensional-array
-func test(v []string) {
+func generate24PossibleRotations(v []string) [][]string {
+	result := make([][]string, 0)
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 3; j++ {
 			v = roll(v)
-			fmt.Printf("%+v\n", v)
+			result = append(result, v)
 			for k := 0; k < 3; k++ {
 				v = turn(v)
-				fmt.Printf("%+v\n", v)
+				result = append(result, v)
 			}
 		}
 		v = roll(turn(roll(v)))
 	}
+	return result
 }
 
 var flipMapping = map[string]string{
