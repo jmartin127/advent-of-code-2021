@@ -90,10 +90,11 @@ func main() {
 	lockedScanners, _ := lockScannerPositions(map[int]*scanner{0: firstScanner}, scanners)
 	fmt.Printf("Locked scanners %d\n", len(lockedScanners))
 
+	// Once all scanners are locked in (relative to 0), loop through and obtain increment common beacon map (relative to 0)
+	for i := 0; i < len(lockedScanners); i++ {
+		addLockedBeaconsToResult(lockedScanners[i])
+	}
 	fmt.Printf("Answer %d\n", len(beaconsFound))
-
-	// Next steps:
-	// 3. Once all scanners are locked in (relative to 0), loop through and obtain increment common beacon map (relative to 0)
 }
 
 // 1. Once a match is found with a scanner relative to a previously locked in scanner, LOCK that position in place (map of scanner position --> *scanner (rotated relative to zero))
@@ -135,18 +136,13 @@ func lockScannerPositions(lockedScanners map[int]*scanner, remainingScanners map
 	return lockedScanners, remainingScanners
 }
 
-func addMatchingBeaconsToResult(a, b *scanner) {
+func addLockedBeaconsToResult(a *scanner) {
 	fmt.Printf("ADDING SCANNERS ...\n")
 	var countAdded int
 	for _, ab := range a.beaconPositions {
 		abs := convertIntArrayToString(ab)
-		for _, bb := range b.beaconPositions {
-			bbs := convertIntArrayToString(bb)
-			if abs == bbs {
-				beaconsFound[abs]++
-				countAdded++
-			}
-		}
+		beaconsFound[abs]++
+		countAdded++
 	}
 	fmt.Printf("\tadded %d\n", countAdded)
 }
