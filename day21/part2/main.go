@@ -8,61 +8,56 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
-const NUM_SIDES_OF_DIE = 100
-const STOPPING_SCORE = 1000
+const STOPPING_SCORE = 21
+
+var player1Wins = 0
+var player2Wins = 0
 
 func main() {
-	list := helpers.ReadFile("input.txt")
+	list := helpers.ReadFile("day21/input.txt")
 	player1StartingSpace, player2StartingSpace := parseInput(list)
-	answer := playToNPoints(STOPPING_SCORE, player1StartingSpace, player2StartingSpace)
-	fmt.Printf("Answer %d\n", answer)
+	playToStoppingScore(player1StartingSpace, player2StartingSpace, 1, 0, 0, true, []int{})
+	playToStoppingScore(player1StartingSpace, player2StartingSpace, 2, 0, 0, true, []int{})
+	playToStoppingScore(player1StartingSpace, player2StartingSpace, 3, 0, 0, true, []int{})
+	fmt.Printf("player1Wins=%d\n", player1Wins)
+	fmt.Printf("player2Wins=%d\n", player2Wins)
 }
 
-func playToNPoints(nPoints int, player1StartingSpace, player2StartingSpace int) int {
-	player1Points := 0
-	player2Points := 0
-
-	player1Turn := true
-	currentDieValue := 0
-	rollIncrement := 3
-	player1Space := player1StartingSpace - 1 // 0-based
-	player2Space := player2StartingSpace - 1 // 0-based
-	numTimesRolled := 0
-	for player1Points < STOPPING_SCORE && player2Points < STOPPING_SCORE {
-		currentDieValue += rollIncrement
-		rolled := toAdd(((currentDieValue - 2) % NUM_SIDES_OF_DIE), ((currentDieValue - 1) % NUM_SIDES_OF_DIE), (currentDieValue % NUM_SIDES_OF_DIE))
-		if player1Turn {
-			player1Space += rolled
-			player1Space = player1Space % 10
-			player1Points += player1Space + 1
+func playToStoppingScore(player1Space, player2Space, currentDiceRoll, player1Score, player2Score int, player1Turn bool, allRolls []int) []int {
+	// base case
+	if player1Score >= STOPPING_SCORE || player2Score >= STOPPING_SCORE {
+		if player1Score > player2Score {
+			player1Wins++
 		} else {
-			player2Space += rolled
-			player2Space = player2Space % 10
-			player2Points += player2Space + 1
+			player2Wins++
 		}
-		player1Turn = !player1Turn
-		numTimesRolled += 3
+		fmt.Printf("Rolls %+v. player1Score=%d. player2Score=%d. \n", allRolls, player1Score, player2Score)
+		return allRolls
 	}
 
-	losingScore := player1Points
-	if player2Points < player1Points {
-		losingScore = player2Points
+	allRolls = append(allRolls, currentDiceRoll)
+	if player1Turn {
+		player1Space = determineSpace(player1Space, currentDiceRoll)
+		player1Score += player1Space
+	} else {
+		player2Space = determineSpace(player2Space, currentDiceRoll)
+		player2Score += player2Space
 	}
-	fmt.Printf("numTimesRolled %d\n", numTimesRolled)
-	fmt.Printf("losingScore %d\n", losingScore)
-	return numTimesRolled * losingScore
+	player1Turn = !player1Turn
+
+	playToStoppingScore(player1Space, player2Space, 1, player1Score, player2Score, player1Turn, allRolls)
+	playToStoppingScore(player1Space, player2Space, 2, player1Score, player2Score, player1Turn, allRolls)
+	playToStoppingScore(player1Space, player2Space, 3, player1Score, player2Score, player1Turn, allRolls)
+
+	return allRolls
 }
 
-func toAdd(val1, val2, val3 int) int {
-	if val1 == 0 {
-		val1 = 100
-	} else if val2 == 0 {
-		val2 = 100
-	} else if val3 == 0 {
-		val3 = 100
+func determineSpace(currentSpace int, roll int) int {
+	currentSpace += roll
+	if currentSpace > 10 {
+		currentSpace = currentSpace - 10
 	}
-	fmt.Printf("Die values %d %d %d...\n", val1, val2, val3)
-	return val1 + val2 + val3
+	return currentSpace
 }
 
 func parseInput(list []string) (int, int) {
