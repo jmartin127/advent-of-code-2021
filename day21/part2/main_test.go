@@ -18,4 +18,7 @@ func TestDetermineSpace(t *testing.T) {
 	if determineSpace(9, 3) != 2 {
 		t.Fatal("expected 2")
 	}
+	if determineSpace(3, 7) != 10 {
+		t.Fatal("expected 2")
+	}
 }
