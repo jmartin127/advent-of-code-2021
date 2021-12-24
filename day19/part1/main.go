@@ -53,6 +53,8 @@ var combinationsOfMatchTypes = [][]string{
 	{"m", "m", "m"},
 }
 
+var beaconsFound = map[string]int{}
+
 func (s *scanner) print() {
 	fmt.Printf("--- scanner %d ---\n", s.id)
 	for _, bp := range s.beaconPositions {
@@ -63,7 +65,7 @@ func (s *scanner) print() {
 
 func main() {
 	setPermutations()
-	list := helpers.ReadFile("input.txt")
+	list := helpers.ReadFile("day19/input.txt")
 	scanners := parseScanners(list)
 
 	// // orient 1 relative to 0
@@ -85,36 +87,83 @@ func main() {
 	firstScanner := scanners[0]
 	delete(scanners, 0)
 
-	lockedScanners, _ := lockScannerPositions(map[int]*orientedScanner{0: {s: firstScanner, position: []int{0, 0, 0}}}, scanners)
+	lockedScanners, _ := lockScannerPositions(map[int]*scanner{0: firstScanner}, scanners)
 	fmt.Printf("Locked scanners %d\n", len(lockedScanners))
+
+	fmt.Printf("Answer %d\n", len(beaconsFound))
 
 	// Next steps:
 	// 3. Once all scanners are locked in (relative to 0), loop through and obtain increment common beacon map (relative to 0)
 }
 
 // 1. Once a match is found with a scanner relative to a previously locked in scanner, LOCK that position in place (map of scanner position --> *scanner (rotated relative to zero))
-func lockScannerPositions(lockedScanners map[int]*orientedScanner, remainingScanners map[int]*scanner) (map[int]*orientedScanner, map[int]*scanner) {
+func lockScannerPositions(lockedScanners map[int]*scanner, remainingScanners map[int]*scanner) (map[int]*scanner, map[int]*scanner) {
 	if len(lockedScanners) == 0 {
 		return lockedScanners, remainingScanners
 	}
 
 	// 2. Then compare to locked in positions and continue to lock in until all scanners are locked in.
-	resultLocked := copyOrientedMap(lockedScanners)
+	resultLocked := copyMap(lockedScanners)
 	resultRemaining := copyMap(remainingScanners)
 	for rsPos, rs := range remainingScanners {
 		for lsPos, ls := range lockedScanners {
-			if hasOverlap, os := ls.s.scannersMatch(rs, true); hasOverlap {
-				positionRelativeToZero := addByPos(ls.position, os.position)
-				resultLocked[rsPos] = &orientedScanner{s: os.s, position: positionRelativeToZero}
-				fmt.Printf("\nAdding %+v and %+v\n", ls.position, os.position)
-				fmt.Printf("LOCKING in scanner %d at position %+v, relative to scanner %d\n", rsPos, positionRelativeToZero, lsPos)
+			if hasOverlap, os, matchType := ls.scannersMatch(rs, true); hasOverlap {
+				fmt.Printf("LOCKING in scanner %d at position %+v, relative to scanner %d\n", rsPos, os.position, lsPos)
+
+				// reset the new scanner to zero coords
+				resetScanner := os.resetToZeroCoords(matchType)
+
+				// // updated the list of beacons we have found
+				// addMatchingBeaconsToResult(ls, resetScanner)
+				// fmt.Printf("NUM OF BEACONS %d\n", len(beaconsFound))
+				// for k := range beaconsFound {
+				// 	fmt.Printf("\tbeacon %+v\n", k)
+				// }
+
+				// update list of locked scanners
+				resultLocked[rsPos] = resetScanner
+
+				// update list of remaining scanners
 				delete(resultRemaining, rsPos)
+
+				// continue until finished
 				return lockScannerPositions(resultLocked, resultRemaining)
 			}
 		}
 	}
 
 	return lockedScanners, remainingScanners
+}
+
+func addMatchingBeaconsToResult(a, b *scanner) {
+	fmt.Printf("ADDING SCANNERS ...\n")
+	var countAdded int
+	for _, ab := range a.beaconPositions {
+		abs := convertIntArrayToString(ab)
+		for _, bb := range b.beaconPositions {
+			bbs := convertIntArrayToString(bb)
+			if abs == bbs {
+				beaconsFound[abs]++
+				countAdded++
+			}
+		}
+	}
+	fmt.Printf("\tadded %d\n", countAdded)
+}
+
+func (os *orientedScanner) resetToZeroCoords(matchType []string) *scanner {
+	for i, bp := range os.s.beaconPositions {
+		//: %+v\n", os.s.beaconPositions[i])
+		for j, v := range os.position {
+			valToAdd := bp[j]
+			if matchType[j] == "m" {
+				valToAdd *= -1
+			}
+			os.s.beaconPositions[i][j] = valToAdd + v
+		}
+		//fmt.Printf("NEW: %+v\n", os.s.beaconPositions[i])
+	}
+	return os.s
 }
 
 func addByPos(a []int, b []int) []int {
@@ -151,23 +200,23 @@ func setPermutations() {
 	permutations = perms
 }
 
-func (s *scanner) scannersMatch(other *scanner, shouldReturn bool) (bool, *orientedScanner) {
+func (s *scanner) scannersMatch(other *scanner, shouldReturn bool) (bool, *orientedScanner, []string) {
 	for _, perm := range permutations {
 		//fmt.Printf("perm %d\n", i)
 		other = other.applyPermutation(perm)
-		if hasOverlap, relativePos := s.scannersMatchAtCurrentPosition(other); hasOverlap {
-			fmt.Printf("Found a match at relativePos %+v with perm %s\n", relativePos, perm.asString())
+		if hasOverlap, relativePos, matchType := s.scannersMatchAtCurrentPosition(other); hasOverlap {
+			// Match at relativePos %+v with perm %s\n", relativePos, perm.asString())
 			// fmt.Printf("THIS scanner:\n")
 			// s.print()
 			// fmt.Printf("Other scanner:\n")
 			// other.print()
 			if shouldReturn {
-				return hasOverlap, &orientedScanner{s: other, position: relativePos}
+				return hasOverlap, &orientedScanner{s: other, position: relativePos}, matchType
 			}
 		}
 	}
 
-	return false, &orientedScanner{s: other, position: []int{}}
+	return false, &orientedScanner{s: other, position: []int{}}, []string{}
 }
 
 /*
@@ -175,7 +224,7 @@ Options:
 1) just take the diff
 2) multiple by -1, then take diff
 */
-func (s *scanner) scannersMatchAtCurrentPosition(other *scanner) (bool, []int) {
+func (s *scanner) scannersMatchAtCurrentPosition(other *scanner) (bool, []int, []string) {
 	// try each combination at each position (e.g., d,d,m)
 	for _, matchType := range combinationsOfMatchTypes {
 		// do a pair-wise comparison of every beacon, just taking the diffs
@@ -194,19 +243,19 @@ func (s *scanner) scannersMatchAtCurrentPosition(other *scanner) (bool, []int) {
 					}
 				}
 				k := convertIntArrayToString(diff)
-				if v, ok := diffMap[k]; ok && v > 10 {
-					fmt.Printf("incrementing value again %+v for bp=%+v and otherBp=%+v\n", convertIntArrayToString(diff), bp, otherBp)
-				}
+				// if v, ok := diffMap[k]; ok && v > 10 {
+				// 	fmt.Printf("incrementing value again %+v for bp=%+v and otherBp=%+v\n", convertIntArrayToString(diff), bp, otherBp)
+				// }
 				incrementMap(diffMap, k)
 			}
 		}
 		// check if any of these occur more than N number of times
 		if hasOverlap, relativePos := findOverlap(diffMap); hasOverlap {
 			fmt.Printf("Found match using match type %+v\n", matchType) // TODO
-			return hasOverlap, relativePos
+			return hasOverlap, relativePos, matchType
 		}
 	}
-	return false, []int{}
+	return false, []int{}, []string{}
 }
 
 func incrementMap(diffMap map[string]int, key string) {
