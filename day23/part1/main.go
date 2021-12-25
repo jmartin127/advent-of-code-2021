@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
+
+var totalPrint = 0
 
 const (
 	WALL    = "#"
@@ -152,15 +155,20 @@ func (c *cave) print() {
 func main() {
 	c := parseInput()
 	c.print()
-	moveUntilFinished(c)
+	moveUntilFinished(c, c.amphipods[2])
 }
 
 // The amphipods would like a method to organize every amphipod into side rooms so that each side room contains
 // one type of amphipod and the types are sorted A-D going left to right, like this:
-func moveUntilFinished(inputCave *cave) { // all reached destination, all stuck
+func moveUntilFinished(inputCave *cave, aInput *amphipod) { // all reached destination, all stuck
 	c := inputCave.copy()
-
+	a := aInput.copy()
+	fmt.Printf("COPY!\n")
 	c.print()
+	totalPrint++
+	if totalPrint >= 20 {
+		log.Fatal()
+	}
 
 	// base cases:
 	// a) all amphipods have found thier final spot
@@ -170,25 +178,40 @@ func moveUntilFinished(inputCave *cave) { // all reached destination, all stuck
 		return
 	}
 
-	for _, a := range c.amphipods {
-		// try all of the hall positions
-		for hallAssignment := 0; hallAssignment < 7; hallAssignment++ {
-			moved := moveIntoHall(c, a, hallAssignment)
-			if moved { // If we weren't able to move the amphipod, don't recurse
-				moveUntilFinished(c)
+	// try all of the hall positions
+	for hallAssignment := 0; hallAssignment < 7; hallAssignment++ {
+		cCop := c.copy()
+		aCop := a.copy()
+		fmt.Printf("Before hall move ...\n")
+		cCop.print()
+		moved := moveIntoHall(cCop, aCop, hallAssignment)
+		fmt.Printf("After hall move ...\n")
+		cCop.print()
+		if moved { // If we weren't able to move the amphipod, don't recurse
+			for _, o := range cCop.amphipods {
+				moveUntilFinished(cCop, o)
 			}
 		}
+	}
 
-		// try going to the room
-		moved := moveIntoRoom(c, a)
-		if moved { // If we weren't able to move the amphipod, don't recurse
-			moveUntilFinished(c)
+	// try going to the room
+	cCop := c.copy()
+	aCop := a.copy()
+	moved := moveIntoRoom(cCop, aCop)
+	if moved { // If we weren't able to move the amphipod, don't recurse
+		for _, o := range c.amphipods {
+			moveUntilFinished(cCop, o)
 		}
 	}
 }
 
 // TODO don't allow a crab to move out if it is the only one in the room, and it is already in the correc position
 func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
+	// make sure the cave thinks it is here as well
+	if c.cells[a.yPos][a.xPos].amph == nil {
+		log.Fatal("The cave doesn't think anything is here")
+	}
+
 	// Once an amphipod stops moving in the hallway, it will stay in that spot until it can move into a room.
 	if a.isInHall {
 		return false
@@ -208,11 +231,17 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 	}
 
 	// move to that position in the hallway
+	// make sure the cave thinks it is here as well
+	fmt.Printf("Currently at this position %+v\n", c.cells[a.yPos][a.xPos])
+	fmt.Printf("Before moving into hall %d %d\n", a.yPos, a.xPos)
+	c.print()
 	c.cells[a.yPos][a.xPos].amph = nil
 	c.cells[1][destinationX].amph = a
 	a.xPos = destinationX
 	a.yPos = 1
 	a.isInHall = true
+	fmt.Printf("After moving into hall %d %d\n", a.yPos, a.xPos)
+	c.print()
 	return true
 }
 
