@@ -45,6 +45,14 @@ var HALL_LOCATIONS = map[int]int{
 	6: 11,
 }
 
+var perms = []*permutation{}
+
+type permutation struct {
+	amphipodIndex int
+	goToHall      bool // true for hall, false for room
+	hallIndex     int
+}
+
 type coord struct {
 	x int
 	y int
@@ -155,57 +163,64 @@ func (c *cave) print() {
 func main() {
 	c := parseInput()
 	c.print()
-	moveUntilFinished(c, c.amphipods[2])
+
+	perms = createPermutations(c.amphipods)
+	fmt.Printf("Num of permutations %d\n", len(perms))
+
+	moveUntilFinished(c, []*permutation{})
+}
+
+// Should be 8 * 8 = 64 permutations
+// 8 amphipods
+// 8 possible moves for amphipods (7 ways to enter hall, 1 way to enter room)
+func createPermutations(amphipods []*amphipod) []*permutation {
+	result := make([]*permutation, 0)
+	for amphipodIndex := range amphipods {
+		// hall options
+		for hallIndex := range HALL_LOCATIONS {
+			p := &permutation{amphipodIndex: amphipodIndex, goToHall: true, hallIndex: hallIndex}
+			result = append(result, p)
+		}
+
+		// room option
+		p := &permutation{amphipodIndex: amphipodIndex, goToHall: false, hallIndex: -1}
+		result = append(result, p)
+	}
+	return result
 }
 
 // The amphipods would like a method to organize every amphipod into side rooms so that each side room contains
 // one type of amphipod and the types are sorted A-D going left to right, like this:
-func moveUntilFinished(inputCave *cave, aInput *amphipod) { // all reached destination, all stuck
-	c := inputCave.copy()
-	a := aInput.copy()
-	fmt.Printf("COPY!\n")
-	c.print()
-	totalPrint++
-	if totalPrint >= 20 {
-		log.Fatal()
-	}
-
-	// base cases:
-	// a) all amphipods have found thier final spot
+func moveUntilFinished(c *cave, path []*permutation) {
+	// base case:
 	if c.allFoundRoom() {
-		fmt.Printf("ALL HAVE FOUND A ROOM!")
+		fmt.Printf("FOUND A ROOM!")
 		c.print()
+		fmt.Println("Paths...")
+		for _, p := range path {
+			fmt.Printf("\tpath %+v\n", p)
+		}
 		return
 	}
 
-	// try all of the hall positions
-	for hallAssignment := 0; hallAssignment < 7; hallAssignment++ {
-		cCop := c.copy()
-		aCop := a.copy()
-		fmt.Printf("Before hall move ...\n")
-		cCop.print()
-		moved := moveIntoHall(cCop, aCop, hallAssignment)
-		fmt.Printf("After hall move ...\n")
-		cCop.print()
-		if moved { // If we weren't able to move the amphipod, don't recurse
-			for _, o := range cCop.amphipods {
-				moveUntilFinished(cCop, o)
-			}
-		}
-	}
-
-	// try going to the room
-	cCop := c.copy()
-	aCop := a.copy()
-	moved := moveIntoRoom(cCop, aCop)
-	if moved { // If we weren't able to move the amphipod, don't recurse
-		for _, o := range c.amphipods {
-			moveUntilFinished(cCop, o)
-		}
+	for _, p := range perms {
+		applyPermutation(c.copy(), p, path)
 	}
 }
 
-// TODO don't allow a crab to move out if it is the only one in the room, and it is already in the correc position
+func applyPermutation(c *cave, p *permutation, path []*permutation) {
+	var moved bool
+	if p.goToHall {
+		moved = moveIntoHall(c, c.amphipods[p.amphipodIndex], p.hallIndex)
+	} else {
+		moved = moveIntoRoom(c, c.amphipods[p.amphipodIndex])
+	}
+	if moved {
+		path = append(path, p)
+		moveUntilFinished(c, path)
+	}
+}
+
 func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 	// make sure the cave thinks it is here as well
 	if c.cells[a.yPos][a.xPos].amph == nil {
@@ -225,6 +240,13 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 	// Determine where we are going
 	destinationX := HALL_LOCATIONS[hallAssignment]
 
+	// If it is on the bottom, check if there is another amphipod blocking
+	if a.yPos == 3 {
+		if c.cells[a.yPos-1][a.xPos].amph != nil {
+			return false
+		}
+	}
+
 	// Check if the hallway is clear
 	if !isHallwayClear(c, a, destinationX) {
 		return false
@@ -232,16 +254,11 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 
 	// move to that position in the hallway
 	// make sure the cave thinks it is here as well
-	fmt.Printf("Currently at this position %+v\n", c.cells[a.yPos][a.xPos])
-	fmt.Printf("Before moving into hall %d %d\n", a.yPos, a.xPos)
-	c.print()
 	c.cells[a.yPos][a.xPos].amph = nil
 	c.cells[1][destinationX].amph = a
 	a.xPos = destinationX
 	a.yPos = 1
 	a.isInHall = true
-	fmt.Printf("After moving into hall %d %d\n", a.yPos, a.xPos)
-	c.print()
 	return true
 }
 
@@ -343,6 +360,11 @@ func parseInput() *cave {
 					aType: v,
 					yPos:  i,
 					xPos:  j,
+				}
+				firstCavePos := ROOM_ASSIGNMENTS[amph.aType][0]
+				if amph.xPos == firstCavePos.x && amph.yPos == firstCavePos.y {
+					amph.hasFoundRoom = true
+					fmt.Printf("Already in the right spot %s\n", amph.aType)
 				}
 				amphipods = append(amphipods, amph)
 			}
