@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strings"
 
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
 var totalPrint = 0
+var minEnergy = 1000000 // TODO
 
 const (
 	WALL    = "#"
@@ -53,6 +55,14 @@ type permutation struct {
 	hallIndex     int
 }
 
+type move struct {
+	*permutation
+	distanceMoved int
+	energy        int
+	aStartX       int
+	aStartY       int
+}
+
 type coord struct {
 	x int
 	y int
@@ -71,6 +81,15 @@ var ROOM_ASSIGNMENTS = map[string][]*coord{
 	"B": []*coord{{x: 5, y: 3}, {x: 5, y: 2}},
 	"C": []*coord{{x: 7, y: 3}, {x: 7, y: 2}},
 	"D": []*coord{{x: 9, y: 3}, {x: 9, y: 2}},
+}
+
+// Amber amphipods require 1 energy per step, Bronze amphipods require 10 energy, Copper
+// amphipods require 100, and Desert ones require 1000.
+var ENGERY_PER_MOVE = map[string]int{
+	"A": 1,
+	"B": 10,
+	"C": 100,
+	"D": 1000,
 }
 
 type amphipod struct {
@@ -167,7 +186,7 @@ func main() {
 	perms = createPermutations(c.amphipods)
 	fmt.Printf("Num of permutations %d\n", len(perms))
 
-	moveUntilFinished(c, []*permutation{})
+	moveUntilFinished(c, []*move{}, 0)
 }
 
 // Should be 8 * 8 = 64 permutations
@@ -191,37 +210,52 @@ func createPermutations(amphipods []*amphipod) []*permutation {
 
 // The amphipods would like a method to organize every amphipod into side rooms so that each side room contains
 // one type of amphipod and the types are sorted A-D going left to right, like this:
-func moveUntilFinished(c *cave, path []*permutation) {
+func moveUntilFinished(c *cave, path []*move, energyToThisPoint int) {
+	if energyToThisPoint > minEnergy {
+		return
+	}
+
 	// base case:
 	if c.allFoundRoom() {
 		fmt.Printf("FOUND A ROOM!")
-		c.print()
-		fmt.Println("Paths...")
-		for _, p := range path {
-			fmt.Printf("\tpath %+v\n", p)
+		//c.print()
+		//fmt.Println("Path... (made up of moves)")
+		var totalEnergy int
+		for _, m := range path {
+			// fmt.Printf("\tmove energy %d, perm %t %d, a=%s, dist=%d, aStartX=%d, aStartY=%d\n", m.energy, m.permutation.goToHall, m.permutation.hallIndex, c.amphipods[m.amphipodIndex].aType, m.distanceMoved, m.aStartX, m.aStartY)
+			totalEnergy += m.energy
 		}
+		if totalEnergy < minEnergy {
+			minEnergy = totalEnergy
+		}
+		fmt.Printf("\tTOTAL ENERGY %d. Min energy %d\n", totalEnergy, minEnergy)
 		return
 	}
 
 	for _, p := range perms {
-		applyPermutation(c.copy(), p, path)
+		applyPermutation(c.copy(), p, path, energyToThisPoint)
 	}
 }
 
-func applyPermutation(c *cave, p *permutation, path []*permutation) {
+func applyPermutation(c *cave, p *permutation, path []*move, energyToThisPoint int) {
 	var moved bool
+	var m *move
+	a := c.amphipods[p.amphipodIndex]
 	if p.goToHall {
-		moved = moveIntoHall(c, c.amphipods[p.amphipodIndex], p.hallIndex)
+		moved, m = moveIntoHall(c, a, p.hallIndex)
 	} else {
-		moved = moveIntoRoom(c, c.amphipods[p.amphipodIndex])
+		moved, m = moveIntoRoom(c, a)
 	}
 	if moved {
-		path = append(path, p)
-		moveUntilFinished(c, path)
+		energy := m.distanceMoved * ENGERY_PER_MOVE[a.aType]
+		m.energy = energy
+		m.permutation = p
+		path = append(path, m)
+		moveUntilFinished(c, path, energyToThisPoint+energy)
 	}
 }
 
-func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
+func moveIntoHall(c *cave, a *amphipod, hallAssignment int) (bool, *move) {
 	// make sure the cave thinks it is here as well
 	if c.cells[a.yPos][a.xPos].amph == nil {
 		log.Fatal("The cave doesn't think anything is here")
@@ -229,12 +263,12 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 
 	// Once an amphipod stops moving in the hallway, it will stay in that spot until it can move into a room.
 	if a.isInHall {
-		return false
+		return false, nil
 	}
 
 	// Once an amphipod has reached it's final destination, it shouldn't come back out
 	if a.hasFoundRoom {
-		return false
+		return false, nil
 	}
 
 	// Determine where we are going
@@ -243,14 +277,21 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 	// If it is on the bottom, check if there is another amphipod blocking
 	if a.yPos == 3 {
 		if c.cells[a.yPos-1][a.xPos].amph != nil {
-			return false
+			return false, nil
 		}
 	}
 
 	// Check if the hallway is clear
 	if !isHallwayClear(c, a, destinationX) {
-		return false
+		return false, nil
 	}
+
+	// cost to go right/left in the hall
+	distanceMoved := int(math.Abs(float64(a.xPos-destinationX))) + int(math.Abs(float64(a.yPos-1)))
+
+	// record keeping
+	aStartX := a.xPos
+	aStartY := a.yPos
 
 	// move to that position in the hallway
 	// make sure the cave thinks it is here as well
@@ -259,12 +300,12 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) bool {
 	a.xPos = destinationX
 	a.yPos = 1
 	a.isInHall = true
-	return true
+	return true, &move{distanceMoved: distanceMoved, aStartX: aStartX, aStartY: aStartY}
 }
 
-func moveIntoRoom(c *cave, a *amphipod) bool {
+func moveIntoRoom(c *cave, a *amphipod) (bool, *move) {
 	if !a.isInHall { // already in a room
-		return false
+		return false, nil
 	}
 
 	// First check if the furtherst spot in the room is available, if it isn't, take the last spot
@@ -278,13 +319,13 @@ func moveIntoRoom(c *cave, a *amphipod) bool {
 	} else {
 		// if there is an amphipod in the preferred spot, see if it is the righ type
 		if furthestCell.amph.aType != a.aType {
-			return false // can't move into the room, there is a amphipod of the wrong type already in the room
+			return false, nil // can't move into the room, there is a amphipod of the wrong type already in the room
 		} else {
 			// there is already one in the furtherst spot, check if the last spot is open
 			lastSpot := ROOM_ASSIGNMENTS[a.aType][1]
 			lastCell := c.cells[lastSpot.y][lastSpot.x]
 			if lastCell.amph != nil {
-				return false // can't move here, there is already an amphipod in the last spot
+				return false, nil // can't move here, there is already an amphipod in the last spot
 			} else {
 				// the last spot is open, let's try to go there
 				xTargetPos = lastSpot.x
@@ -295,8 +336,15 @@ func moveIntoRoom(c *cave, a *amphipod) bool {
 
 	// move to the target position (if nothing is in the way)
 	if !isHallwayClear(c, a, xTargetPos) {
-		return false
+		return false, nil
 	}
+
+	// calculate the distance
+	distanceMoved := int(math.Abs(float64(a.xPos-xTargetPos))) + int(math.Abs(float64(a.yPos-yTargetPos)))
+
+	// record keeping
+	aStartX := a.xPos
+	aStartY := a.yPos
 
 	// since the hallway is clear, and we've already checked the room, let's move IN!
 	c.cells[a.yPos][a.xPos].amph = nil
@@ -305,7 +353,7 @@ func moveIntoRoom(c *cave, a *amphipod) bool {
 	a.yPos = yTargetPos
 	a.isInHall = false
 	a.hasFoundRoom = true
-	return true
+	return true, &move{distanceMoved: distanceMoved, aStartX: aStartX, aStartY: aStartY}
 }
 
 func isHallwayClear(c *cave, a *amphipod, destinationX int) bool {
