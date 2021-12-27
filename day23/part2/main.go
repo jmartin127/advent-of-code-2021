@@ -207,10 +207,10 @@ func main() {
 		fmt.Printf("\t%s\n", a.aType)
 	}
 
-	// perms = createPermutations(c.amphipods)
-	// fmt.Printf("Num of permutations %d\n", len(perms))
+	perms = createPermutations(c.amphipods)
+	fmt.Printf("Num of permutations %d\n", len(perms))
 
-	// moveUntilFinished(c, []*move{}, 0)
+	moveUntilFinished(c, []*move{}, 0)
 }
 
 // Should be 16 * 8 = 128 permutations
@@ -235,13 +235,12 @@ func createPermutations(amphipods []*amphipod) []*permutation {
 // The amphipods would like a method to organize every amphipod into side rooms so that each side room contains
 // one type of amphipod and the types are sorted A-D going left to right, like this:
 func moveUntilFinished(c *cave, path []*move, energyToThisPoint int) {
-	if energyToThisPoint > minEnergy {
+	if energyToThisPoint >= minEnergy {
 		return
 	}
 
 	// base case:
 	if c.allFoundRoom() {
-		fmt.Printf("FOUND A ROOM!")
 		//c.print()
 		//fmt.Println("Path... (made up of moves)")
 		var totalEnergy int
@@ -251,8 +250,8 @@ func moveUntilFinished(c *cave, path []*move, energyToThisPoint int) {
 		}
 		if totalEnergy < minEnergy {
 			minEnergy = totalEnergy
+			fmt.Printf("FOUND A ROOM!\tTOTAL ENERGY %d. Min energy %d\n", totalEnergy, minEnergy)
 		}
-		fmt.Printf("\tTOTAL ENERGY %d. Min energy %d\n", totalEnergy, minEnergy)
 		return
 	}
 
