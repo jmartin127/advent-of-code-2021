@@ -11,7 +11,7 @@ import (
 )
 
 var totalPrint = 0
-var minEnergy = 1000000 // TODO
+var minEnergy = 1000000
 
 const (
 	WALL    = "#"
@@ -299,7 +299,6 @@ func moveIntoHall(c *cave, a *amphipod, hallAssignment int) (bool, *move) {
 	destinationY := 1
 
 	// Check if the room pathway is clear
-	// TODO fix this to have the correcrt starting Y
 	if !isRoomPathwayClear(c, a, destinationY) {
 		return false, nil
 	}
