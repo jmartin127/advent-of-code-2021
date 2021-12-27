@@ -241,7 +241,6 @@ func moveUntilFinished(c *cave, path []*move, energyToThisPoint int) {
 
 	// base case:
 	if c.allFoundRoom() {
-		//c.print()
 		//fmt.Println("Path... (made up of moves)")
 		var totalEnergy int
 		for _, m := range path {
@@ -251,6 +250,7 @@ func moveUntilFinished(c *cave, path []*move, energyToThisPoint int) {
 		if totalEnergy < minEnergy {
 			minEnergy = totalEnergy
 			fmt.Printf("FOUND A ROOM!\tTOTAL ENERGY %d. Min energy %d\n", totalEnergy, minEnergy)
+			//c.print()
 		}
 		return
 	}
@@ -463,7 +463,7 @@ func checkIfAlreadyFoundFinalSpot(c *cave) {
   #########
 */
 func parseInput() *cave {
-	filepath := "day23/part2/sample.txt"
+	filepath := "day23/part2/input.txt"
 	list := helpers.ReadFile(filepath)
 
 	cells := make([][]*cell, 0)
