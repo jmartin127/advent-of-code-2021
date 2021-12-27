@@ -37,17 +37,7 @@ func processInstruction(ins *instruction, onCubes map[string]bool) {
 		return
 	}
 
-	for i := ins.xStart; i <= ins.xEnd; i++ {
-		for j := ins.yStart; j <= ins.yEnd; j++ {
-			for k := ins.zStart; k <= ins.zEnd; k++ {
-				if ins.isOn {
-					onCubes[makeKey(i, j, k)] = true
-				} else {
-					delete(onCubes, makeKey(i, j, k))
-				}
-			}
-		}
-	}
+	// obtain all "off" instructions that come after this one
 }
 
 // The initialization procedure only uses cubes that have x, y, and z positions of at least -50 and at most 50. For now, ignore cubes outside this region.
