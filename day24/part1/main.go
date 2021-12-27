@@ -17,21 +17,100 @@ type instruction struct {
 	operand2Num      int
 }
 
+var posByLetter = map[string]int{
+	"w": 0,
+	"x": 1,
+	"y": 2,
+	"z": 3,
+}
+
+var vals = []int{0, 0, 0, 0}
+
 func main() {
+	// read the instructions
 	filepath := "day24/input.txt"
 	list := helpers.ReadFile(filepath)
 	instructions := parseInput(list)
 
+	isValid := isValidModelNumber(6, instructions)
+	fmt.Printf("Valid=%t\n", isValid)
+	fmt.Printf("Result %+v", vals)
+}
+
+func isValidModelNumber(modelNum int, instructions []*instruction) bool {
+	checkModelNumber(modelNum, instructions)
+	if vals[posByLetter["z"]] == 0 {
+		return true
+	}
+	return false
+}
+
+// Example model number: 13579246899999
+func checkModelNumber(modelNumStr int, instructions []*instruction) {
+	modelNum := strings.Split(strconv.Itoa(modelNumStr), "")
+	var modelNumPointer int
+
 	for _, i := range instructions {
-		fmt.Printf("i=%+v\n", i)
+		var inputValInt int
+		if modelNumPointer <= len(modelNum)-1 {
+			inputValInt, _ = strconv.Atoi(modelNum[modelNumPointer])
+		}
+		usedInputVal := applyInstruction(i, inputValInt)
+		if usedInputVal {
+			modelNumPointer++
+		}
 	}
 }
 
-// func checkModelNumber(modelNumStr int) {
-// 	modelNum := strings.Split(strconv.Itoa(modelNumStr), "")
-// 	var modelNumPointer int
+/*
+ */
+func applyInstruction(i *instruction, inputVal int) bool {
+	var usedInputVal bool
 
-// }
+	switch i.cmd {
+	case "inp": // inp a - Read an input value and write it to variable a.
+		vals[posByLetter[i.operand1]] = inputVal
+		usedInputVal = true
+	case "add": // add a b - Add the value of a to the value of b, then store the result in variable a.
+		if i.operand2IsNum {
+			vals[posByLetter[i.operand1]] += i.operand2Num
+		} else {
+			vals[posByLetter[i.operand1]] += vals[posByLetter[i.operand2]]
+		}
+	case "mul": // mul a b - Multiply the value of a by the value of b, then store the result in variable a.
+		if i.operand2IsNum {
+			vals[posByLetter[i.operand1]] *= i.operand2Num
+		} else {
+			vals[posByLetter[i.operand1]] *= vals[posByLetter[i.operand2]]
+		}
+	case "div": // div a b - Divide the value of a by the value of b, truncate the result to an integer, then store the result in variable a. (Here, "truncate" means to round the value toward zero.)
+		if i.operand2IsNum {
+			vals[posByLetter[i.operand1]] /= i.operand2Num
+		} else {
+			vals[posByLetter[i.operand1]] /= vals[posByLetter[i.operand2]]
+		}
+	case "mod": // mod a b - Divide the value of a by the value of b, then store the remainder in variable a. (This is also called the modulo operation.)
+		if i.operand2IsNum {
+			vals[posByLetter[i.operand1]] %= i.operand2Num
+		} else {
+			vals[posByLetter[i.operand1]] %= vals[posByLetter[i.operand2]]
+		}
+	case "eql": // eql a b - If the value of a and b are equal, then store the value 1 in variable a. Otherwise, store the value 0 in variable a.
+		var equalVal int
+		if i.operand2IsNum {
+			if vals[posByLetter[i.operand1]] == i.operand2Num {
+				equalVal = 1
+			}
+		} else {
+			if vals[posByLetter[i.operand1]] == vals[posByLetter[i.operand2]] {
+				equalVal = 1
+			}
+		}
+		vals[posByLetter[i.operand1]] = equalVal
+	}
+
+	return usedInputVal
+}
 
 func parseInput(list []string) []*instruction {
 	instructions := make([]*instruction, 0)
@@ -50,13 +129,6 @@ div z 1
 add x 13
 eql x w
 eql x 0
-
-inp a - Read an input value and write it to variable a.
-add a b - Add the value of a to the value of b, then store the result in variable a.
-mul a b - Multiply the value of a by the value of b, then store the result in variable a.
-div a b - Divide the value of a by the value of b, truncate the result to an integer, then store the result in variable a. (Here, "truncate" means to round the value toward zero.)
-mod a b - Divide the value of a by the value of b, then store the remainder in variable a. (This is also called the modulo operation.)
-eql a b - If the value of a and b are equal, then store the value 1 in variable a. Otherwise, store the value 0 in variable a.
 */
 func parseLine(line string) *instruction {
 	parts := strings.Split(line, " ")
