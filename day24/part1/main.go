@@ -21,6 +21,8 @@ type instruction struct {
 
 const MODEL_NUM_LEN = 14
 
+var maxModelNum int
+
 var posByLetter = map[string]int{
 	"w": 0,
 	"x": 1,
@@ -40,10 +42,13 @@ func main() {
 
 	for true {
 		modelNum := randomlyGenerateNewModelNum()
-		vals = []int{0, 0, 0, 0} // reset the output vars
-		isValid := isValidModelNumber(modelNum, instructions)
-		if isValid {
-			fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
+		if modelNum > maxModelNum {
+			vals = []int{0, 0, 0, 0} // reset the output vars
+			isValid := isValidModelNumber(modelNum, instructions)
+			if isValid {
+				fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
+				maxModelNum = modelNum
+			}
 		}
 	}
 
