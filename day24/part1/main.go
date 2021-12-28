@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
@@ -16,6 +18,8 @@ type instruction struct {
 	operand2         string
 	operand2Num      int
 }
+
+const MODEL_NUM_LEN = 1
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -32,9 +36,31 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructions := parseInput(list)
 
-	isValid := isValidModelNumber(6, instructions)
-	fmt.Printf("Valid=%t\n", isValid)
-	fmt.Printf("Result %+v", vals)
+	isValidModelNumber(15695191297997, instructions)
+
+	// for i := 1; i < 10; i++ {
+	// 	vals = []int{0, 0, 0, 0} // reset the output vars
+	// 	isValid := isValidModelNumber(i, instructions)
+	// 	fmt.Printf("MODEL_NUM %d. Is Valid %t, Vals=%+v\n", i, isValid, vals)
+	// }
+}
+
+func randomlyGenerateNewModelNum() int {
+	newModelNum := ""
+	for i := 0; i < MODEL_NUM_LEN; i++ {
+		r := generateRandomNumber()
+		newModelNum += strconv.Itoa(r)
+	}
+
+	result, _ := strconv.Atoi(newModelNum)
+	return result
+}
+
+func generateRandomNumber() int {
+	rand.Seed(time.Now().UnixNano())
+	min := 1
+	max := 9
+	return rand.Intn(max-min+1) + min
 }
 
 func isValidModelNumber(modelNum int, instructions []*instruction) bool {
@@ -51,6 +77,9 @@ func checkModelNumber(modelNumStr int, instructions []*instruction) {
 	var modelNumPointer int
 
 	for _, i := range instructions {
+		if i.cmd == "inp" {
+			fmt.Printf("CURRENT VALS %+v\n", vals)
+		}
 		var inputValInt int
 		if modelNumPointer <= len(modelNum)-1 {
 			inputValInt, _ = strconv.Atoi(modelNum[modelNumPointer])
@@ -60,6 +89,7 @@ func checkModelNumber(modelNumStr int, instructions []*instruction) {
 			modelNumPointer++
 		}
 	}
+	fmt.Printf("CURRENT VALS %+v\n", vals)
 }
 
 /*
@@ -95,6 +125,10 @@ func applyInstruction(i *instruction, inputVal int) bool {
 		} else {
 			vals[posByLetter[i.operand1]] %= vals[posByLetter[i.operand2]]
 		}
+		// handle ASCII
+		//fmt.Printf("Converting %d to ascii\n", vals[posByLetter[i.operand1]])
+		//character := string(65 + vals[posByLetter[i.operand1]])
+		//fmt.Printf("ASCII %s\n", character)
 	case "eql": // eql a b - If the value of a and b are equal, then store the value 1 in variable a. Otherwise, store the value 0 in variable a.
 		var equalVal int
 		if i.operand2IsNum {
