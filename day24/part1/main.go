@@ -19,7 +19,7 @@ type instruction struct {
 	operand2Num      int
 }
 
-const MODEL_NUM_LEN = 1
+const MODEL_NUM_LEN = 14
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -36,7 +36,16 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructions := parseInput(list)
 
-	isValidModelNumber(15695191297997, instructions)
+	//isValidModelNumber(15695191297997, instructions)
+
+	for true {
+		modelNum := randomlyGenerateNewModelNum()
+		vals = []int{0, 0, 0, 0} // reset the output vars
+		isValid := isValidModelNumber(modelNum, instructions)
+		if isValid {
+			fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
+		}
+	}
 
 	// for i := 1; i < 10; i++ {
 	// 	vals = []int{0, 0, 0, 0} // reset the output vars
@@ -45,11 +54,28 @@ func main() {
 	// }
 }
 
+// Following this pattern NN69NN91NN799N
+var hardcoded = map[int]int{
+	2:  6,
+	3:  9,
+	6:  9,
+	7:  1,
+	10: 7,
+	11: 9,
+	//12: 9,
+}
+
 func randomlyGenerateNewModelNum() int {
 	newModelNum := ""
 	for i := 0; i < MODEL_NUM_LEN; i++ {
-		r := generateRandomNumber()
-		newModelNum += strconv.Itoa(r)
+		var toAppend int
+		if v, ok := hardcoded[i]; ok {
+			toAppend = v
+		} else {
+			r := generateRandomNumber()
+			toAppend = r
+		}
+		newModelNum += strconv.Itoa(toAppend)
 	}
 
 	result, _ := strconv.Atoi(newModelNum)
@@ -77,9 +103,9 @@ func checkModelNumber(modelNumStr int, instructions []*instruction) {
 	var modelNumPointer int
 
 	for _, i := range instructions {
-		if i.cmd == "inp" {
-			fmt.Printf("CURRENT VALS %+v\n", vals)
-		}
+		// if i.cmd == "inp" {
+		// 	fmt.Printf("CURRENT VALS %+v\n", vals)
+		// }
 		var inputValInt int
 		if modelNumPointer <= len(modelNum)-1 {
 			inputValInt, _ = strconv.Atoi(modelNum[modelNumPointer])
@@ -89,7 +115,7 @@ func checkModelNumber(modelNumStr int, instructions []*instruction) {
 			modelNumPointer++
 		}
 	}
-	fmt.Printf("CURRENT VALS %+v\n", vals)
+	//fmt.Printf("CURRENT VALS %+v\n", vals)
 }
 
 /*
