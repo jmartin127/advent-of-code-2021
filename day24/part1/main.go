@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -21,7 +22,7 @@ type instruction struct {
 
 const MODEL_NUM_LEN = 14
 
-var maxModelNum int
+var maxModelNum = 99691891957938 - 1
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -38,10 +39,14 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructions := parseInput(list)
 
-	//isValidModelNumber(15695191297997, instructions)
+	// isValid := isValidModelNumber(99691891957938, instructions)
+	// fmt.Printf("Is valid %t\n", isValid)
 
+	var numTried int
 	for true {
+		numTried++
 		modelNum := randomlyGenerateNewModelNum()
+		//fmt.Printf("Model num %d\n", modelNum)
 		if modelNum > maxModelNum {
 			vals = []int{0, 0, 0, 0} // reset the output vars
 			isValid := isValidModelNumber(modelNum, instructions)
@@ -49,6 +54,9 @@ func main() {
 				fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
 				maxModelNum = modelNum
 			}
+		}
+		if numTried%100000 == 0 {
+			log.Printf("Num tried %d\n", numTried)
 		}
 	}
 
@@ -60,25 +68,102 @@ func main() {
 }
 
 // Following this pattern NN69NN91NN799N
+// Best number so far: 99691891957938
 var hardcoded = map[int]int{
-	2:  6,
-	3:  9,
-	6:  9,
-	7:  1,
-	10: 7,
-	11: 9,
+	0: 9,
+	1: 9,
+	//2: 6,
+	//3: 9,
+	//6: 9,
+	//7:  1,
+	//10: 7,
+	//11: 9,
 	//12: 9,
 }
 
+// positions where we should only try 6-9
+var positionsToOptimize = map[int]bool{
+	2: true,
+}
+
+// these changes tend to lead to the answer, based on analysis of the input
+// the key is the position in the model number, the value is what should
+// change on the subsequent position
+var preferences = map[int]int{
+	2:  3,
+	6:  -8,
+	7:  -7,
+	10: 2,
+	11: -4,
+	12: 7,
+}
+
+func randomlyChooseFromSlice(i []int, num int) []int {
+	input := make([]int, 0)
+	for _, v := range i {
+		input = append(input, v)
+	}
+
+	result := make([]int, 0)
+	for num > len(result) {
+		r := generateRandomNumber(0, len(input)-1)
+		result = append(result, input[r])
+		remove(input, r)
+	}
+
+	return result
+}
+
+func remove(input []int, s int) []int {
+	return append(input[:s], input[s+1:]...)
+}
+
+func getKeys(m map[int]int) []int {
+	keys := make([]int, len(m))
+
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func getPrefsToUse() map[int]int {
+	keys := getKeys(preferences)
+	keysToUse := randomlyChooseFromSlice(keys, 3)
+	result := make(map[int]int, 0)
+	for _, k := range keysToUse {
+		result[k] = preferences[k]
+	}
+	return result
+}
+
 func randomlyGenerateNewModelNum() int {
+	preferencesToUse := getPrefsToUse()
+	//fmt.Printf("using %+v\n", preferencesToUse)
+
 	newModelNum := ""
 	for i := 0; i < MODEL_NUM_LEN; i++ {
 		var toAppend int
 		if v, ok := hardcoded[i]; ok {
 			toAppend = v
+		} else if _, ok := positionsToOptimize[i]; ok {
+			toAppend = generateRandomNumber(6, 9) // TODO maybe only 7-9
+		} else if v, ok := preferencesToUse[i]; ok {
+			if v < 0 {
+				toAppend = generateRandomNumber((v*-1)+1, 9)
+				newModelNum += strconv.Itoa(toAppend)
+				i++
+				toAppend = toAppend + v
+			} else {
+				toAppend = generateRandomNumber(1, 9-v)
+				newModelNum += strconv.Itoa(toAppend)
+				i++
+				toAppend = toAppend + v
+			}
 		} else {
-			r := generateRandomNumber()
-			toAppend = r
+			toAppend = generateRandomNumber(1, 9)
 		}
 		newModelNum += strconv.Itoa(toAppend)
 	}
@@ -87,10 +172,8 @@ func randomlyGenerateNewModelNum() int {
 	return result
 }
 
-func generateRandomNumber() int {
+func generateRandomNumber(min int, max int) int {
 	rand.Seed(time.Now().UnixNano())
-	min := 1
-	max := 9
 	return rand.Intn(max-min+1) + min
 }
 
