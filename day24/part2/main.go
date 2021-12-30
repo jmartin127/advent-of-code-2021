@@ -63,16 +63,16 @@ func main() {
 // Originally NN69NN91NN799N
 var hardcoded = map[int]int{
 	0: 2,
-	1: 7,
-	2: 6,
-	3: 9,
+	//1: 7,
+	//2: 6,
+	//3: 9,
 	//4:  1,
 	//5:  -1,
 	//6: 9,
-	//7:  1,
-	//8:  -1,
+	7: 1,
+	8: 1,
 	//9:  5,
-	//10: 7,
+	10: 1,
 	11: 1, // will get replaced by lower value
 	12: 1, // will get replaced by lower value
 	13: 1, // will get replaced by lower value
