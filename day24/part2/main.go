@@ -27,7 +27,7 @@ type instructionGroup struct {
 
 const MODEL_NUM_LEN = 14
 
-var minModelNum = 27691591657911 + 1
+var minModelNum = 27141191213911 + 1
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -63,9 +63,9 @@ func main() {
 // Originally NN69NN91NN799N
 var hardcoded = map[int]int{
 	0: 2,
-	//1: 7,
+	1: 7,
 	//2: 6,
-	//3: 9,
+	3: 1,
 	//4:  1,
 	//5:  -1,
 	//6: 9,
@@ -92,6 +92,8 @@ var positionsToOptimize = map[int]bool{
 // New lowest:     27691191279911
 // New lowest:     27691191224911
 // New lowest:     27691191213911
+// New lowest:     27141191213911
+// New lowest:     27141191213911
 var preferences = map[int]int{
 	//3: 3,
 	// 7: -8,
@@ -108,6 +110,7 @@ var specialCases = map[int]int{
 	10: 0,
 	8:  -8,
 	7:  -14,
+	3:  -5,
 }
 
 func randomlyChooseFromSlice(i []int, num int) []int {

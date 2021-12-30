@@ -12,6 +12,7 @@ func TestIsValidModelNumber(t *testing.T) {
 	instructionGroups := parseInput(list)
 
 	toCheck := []int{
+		27141191213911,
 		27691191213911,
 		99691891979938,
 		99691891957938,
