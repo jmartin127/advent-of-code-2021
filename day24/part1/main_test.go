@@ -12,6 +12,7 @@ func TestIsValidModelNumber(t *testing.T) {
 	instructionGroups := parseInput(list)
 
 	toCheck := []int{
+		99691891979938,
 		99691891957938,
 		97691291357918,
 		98691591657928,
@@ -37,13 +38,23 @@ func TestIsValidModelNumber(t *testing.T) {
 		}
 	}
 
+	// should not pass
 	toCheck = []int{
 		13579246899999,
 	}
-
 	for _, tc := range toCheck {
 		if isValidModelNumber(tc, instructionGroups, false) {
 			t.Fatalf("Model number should NOT have passed the check %d", tc)
+		}
+	}
+
+	// should pass (last 2 digits auto-filled)
+	toCheck = []int{
+		99691891957911,
+	}
+	for _, tc := range toCheck {
+		if !isValidModelNumber(tc, instructionGroups, true) {
+			t.Fatalf("Model number should have been auto filled %d", tc)
 		}
 	}
 }

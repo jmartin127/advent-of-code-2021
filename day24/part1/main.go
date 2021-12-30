@@ -45,33 +45,24 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructionGroups := parseInput(list)
 
-	isValid := isValidModelNumber(97691291357918, instructionGroups, true)
-	fmt.Printf("Is valid %t, max %d. Final z %d\n", isValid, maxModelNum, vals[posByLetter["z"]])
+	// isValid := isValidModelNumber(99699999955629, instructionGroups, true)
+	// fmt.Printf("Is valid %t, max %d. Final z %d\n", isValid, maxModelNum, vals[posByLetter["z"]])
 
-	// var numTried int
-	// for true {
-	// 	numTried++
-	// 	modelNum, success := randomlyGenerateNewModelNum()
-	// 	if numTried%100000 == 0 {
-	// 		log.Printf("Num tried %d\n", numTried)
-	// 	}
-	// 	if !success {
-	// 		continue
-	// 	}
-	// 	//fmt.Printf("Model num %d\n", modelNum)
-	// 	if modelNum > maxModelNum {
-	// 		vals = []int{0, 0, 0, 0} // reset the output vars
-	// 		isValid := isValidModelNumber(modelNum, instructions)
-	// 		if isValid {
-	// 			fmt.Printf("%d\n", modelNum)
-	// 			maxModelNum = modelNum
-	// 		}
-	// 		if vals[posByLetter["z"]] < minZ {
-	// 			minZ = vals[posByLetter["z"]]
-	// 			fmt.Printf("New minZ %d\n", minZ)
-	// 		}
-	// 	}
-	// }
+	var numTried int
+	for true {
+		numTried++
+		modelNum, success := randomlyGenerateNewModelNum()
+		if numTried%100000 == 0 {
+			log.Printf("Num tried %d\n", numTried)
+		}
+		if !success {
+			continue
+		}
+		//fmt.Printf("Model num %d\n", modelNum)
+		if modelNum > maxModelNum {
+			isValidModelNumber(modelNum, instructionGroups, true)
+		}
+	}
 
 	// for i := 1; i < 10; i++ {
 	// 	vals = []int{0, 0, 0, 0} // reset the output vars
@@ -88,12 +79,15 @@ var hardcoded = map[int]int{
 	2: 6,
 	3: 9,
 	//4:  1,
-	6: 9,
+	//5:  -1,
+	//6: 9,
 	//7:  1,
+	//8:  -1,
 	//9:  5,
-	10: 7,
-	//11: 9,
-	//12: 9,
+	//10: 7,
+	11: 1, // will get replaced by higher value
+	12: 1, // will get replaced by higher value
+	13: 1, // will get replaced by higher value
 }
 
 // positions where we should only try 6-9
@@ -156,7 +150,7 @@ func getPrefsToUse() map[int]int {
 
 func randomlyGenerateNewModelNum() (int, bool) {
 	//preferencesToUse := getPrefsToUse() // TODO
-	preferencesToUse := preferences // TODO
+	//preferencesToUse := preferences // TODO
 	//fmt.Printf("using %+v\n", preferencesToUse)
 
 	newModelNum := make([]int, 0)
@@ -164,14 +158,14 @@ func randomlyGenerateNewModelNum() (int, bool) {
 		var toAppend int
 		if v, ok := hardcoded[i]; ok {
 			toAppend = v
-		} else if _, ok := positionsToOptimize[i]; ok {
-			toAppend = generateRandomNumber(6, 9) // TODO maybe only 7-9
-		} else if v, ok := preferencesToUse[i]; ok {
-			prevNum := newModelNum[i-1]
-			toAppend = prevNum + v
-			if !checkRange(toAppend) {
-				return -1, false
-			}
+			// } else if _, ok := positionsToOptimize[i]; ok {
+			// 	toAppend = generateRandomNumber(6, 9) // TODO maybe only 7-9
+			// } else if v, ok := preferencesToUse[i]; ok {
+			// 	prevNum := newModelNum[i-1]
+			// 	toAppend = prevNum + v
+			// 	if !checkRange(toAppend) {
+			// 		return -1, false
+			// 	}
 		} else {
 			toAppend = generateRandomNumber(1, 9)
 		}
@@ -245,12 +239,13 @@ func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer
 		// FOUND: For the last digit to work... Need to set w=mod(z from prior, 26)-1.  If w is out of range at this point, the model number won't work out.
 		if modelNumPointer == 13 {
 			inputMustBe := (priorZ % 26) - 1
-			if checkRange(inputMustBe) {
-				modelNum[modelNumPointer] = inputMustBe
-				vals[posByLetter["z"]] = 0 // set the final result, and skip running all the steps, since that's unnecessary
-				return inputMustBe, true, modelNum
+			if !checkRange(inputMustBe) {
+				//vals[posByLetter["z"]] = 0 // set the final result, and skip running all the steps, since that's unnecessary
+				//return inputMustBe, true, modelNum
+				return -1, false, modelNum
 			}
-			return -1, false, modelNum
+			//fmt.Printf("Changing val at pos 14 to %d\n", inputMustBe)
+			modelNum[modelNumPointer] = inputMustBe
 		}
 
 		// FOUND: Looks like this works: Set input to: (prior z mod 26)-9
@@ -259,6 +254,17 @@ func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer
 			if !checkRange(inputMustBe) {
 				return -1, false, modelNum
 			}
+			//fmt.Printf("Changing val at pos 13 to %d\n", inputMustBe)
+			modelNum[modelNumPointer] = inputMustBe
+		}
+
+		// FOUND: Following same logic...
+		if modelNumPointer == 11 {
+			inputMustBe := (priorZ % 26) - 5
+			if !checkRange(inputMustBe) {
+				return -1, false, modelNum
+			}
+			//fmt.Printf("Changing val at pos 11 to %d\n", inputMustBe)
 			modelNum[modelNumPointer] = inputMustBe
 		}
 	}
