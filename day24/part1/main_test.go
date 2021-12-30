@@ -7,6 +7,10 @@ import (
 )
 
 func TestIsValidModelNumber(t *testing.T) {
+	filepath := "../input.txt"
+	list := helpers.ReadFile(filepath)
+	instructionGroups := parseInput(list)
+
 	toCheck := []int{
 		99691891957938,
 		97691291357918,
@@ -21,13 +25,25 @@ func TestIsValidModelNumber(t *testing.T) {
 		58691891957924,
 	}
 
-	filepath := "../input.txt"
-	list := helpers.ReadFile(filepath)
-	instructionGroups := parseInput(list)
+	for _, tc := range toCheck {
+		if !isValidModelNumber(tc, instructionGroups, false) {
+			t.Fatalf("Model number should have passed the check %d", tc)
+		}
+	}
 
 	for _, tc := range toCheck {
-		if !isValidModelNumber(tc, instructionGroups) {
+		if !isValidModelNumber(tc, instructionGroups, true) {
 			t.Fatalf("Model number should have passed the check %d", tc)
+		}
+	}
+
+	toCheck = []int{
+		13579246899999,
+	}
+
+	for _, tc := range toCheck {
+		if isValidModelNumber(tc, instructionGroups, false) {
+			t.Fatalf("Model number should NOT have passed the check %d", tc)
 		}
 	}
 }

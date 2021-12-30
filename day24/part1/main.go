@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -26,7 +27,7 @@ type instructionGroup struct {
 
 const MODEL_NUM_LEN = 14
 
-var maxModelNum = 99691891957938 - 1
+var maxModelNum = 0 // TODO 99691891957938 - 1
 var minZ = 1000000
 
 var posByLetter = map[string]int{
@@ -44,8 +45,8 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructionGroups := parseInput(list)
 
-	isValid := isValidModelNumber(99691891957938, instructionGroups)
-	fmt.Printf("Is valid %t\n", isValid)
+	isValid := isValidModelNumber(97691291357918, instructionGroups, true)
+	fmt.Printf("Is valid %t, max %d. Final z %d\n", isValid, maxModelNum, vals[posByLetter["z"]])
 
 	// var numTried int
 	// for true {
@@ -191,13 +192,13 @@ func generateRandomNumber(min int, max int) int {
 	return rand.Intn(max-min+1) + min
 }
 
-func isValidModelNumber(modelNum int, instructionGroups []*instructionGroup) bool {
+func isValidModelNumber(modelNum int, instructionGroups []*instructionGroup, fixNumber bool) bool {
 	vals = []int{0, 0, 0, 0} // reset the output vars
-	return checkModelNumber(modelNum, instructionGroups)
+	return checkModelNumber(modelNum, instructionGroups, fixNumber)
 }
 
 // Example model number: 13579246899999
-func checkModelNumber(modelNumStr int, instructionGroups []*instructionGroup) bool {
+func checkModelNumber(modelNumStr int, instructionGroups []*instructionGroup, fixNumber bool) bool {
 	// convert model number to slice of int
 	modelNumStrParts := strings.Split(strconv.Itoa(modelNumStr), "")
 	modelNum := make([]int, 0)
@@ -209,40 +210,75 @@ func checkModelNumber(modelNumStr int, instructionGroups []*instructionGroup) bo
 	// apply each group
 	var priorZ int
 	for i, ig := range instructionGroups {
-		currentZ, success := applyInstructionGroup(ig, modelNum, i, priorZ)
+		currentZ, success, newModelNum := applyInstructionGroup(ig, modelNum, i, priorZ, fixNumber)
+		modelNum = newModelNum
 		if !success {
-			fmt.Printf("False for ig index %d\n", i)
 			return false
 		}
 		priorZ = currentZ
 	}
 
-	return true
+	if vals[posByLetter["z"]] == 0 {
+		answer := convertIntArrayToInt(modelNum)
+		if answer > maxModelNum {
+			maxModelNum = answer
+			fmt.Printf("NEW MAX %d\n", answer)
+		}
+		return true
+	}
+	return false
 }
 
-func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer int, priorZ int) (int, bool) {
-	// FOUND: For the last digit to work, priorZ must be <= 10 && >= 2... BECAUSE we are subtracting 1 after doing the mod
-	if modelNumPointer == 13 {
-		if priorZ < 2 || priorZ > 10 {
-			return -1, false
-		} else {
-			return 0, true
+func convertIntArrayToInt(input []int) int {
+	var result string
+	for _, i := range input {
+		result += strconv.Itoa(i)
+	}
+	resultingInteger, _ := strconv.Atoi(result)
+	return resultingInteger
+}
+
+// return vals are: newZ, success, newModelNum
+func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer int, priorZ int, fixNumber bool) (int, bool, []int) {
+	if fixNumber {
+		// FOUND: For the last digit to work, priorZ must be <= 10 && >= 2... BECAUSE we are subtracting 1 after doing the mod
+		// FOUND: For the last digit to work... Need to set w=mod(z from prior, 26)-1.  If w is out of range at this point, the model number won't work out.
+		if modelNumPointer == 13 {
+			inputMustBe := (priorZ % 26) - 1
+			if checkRange(inputMustBe) {
+				modelNum[modelNumPointer] = inputMustBe
+				vals[posByLetter["z"]] = 0 // set the final result, and skip running all the steps, since that's unnecessary
+				return inputMustBe, true, modelNum
+			}
+			return -1, false, modelNum
+		}
+
+		// FOUND: Looks like this works: Set input to: (prior z mod 26)-9
+		if modelNumPointer == 12 {
+			inputMustBe := (priorZ % 26) - 9
+			if !checkRange(inputMustBe) {
+				return -1, false, modelNum
+			}
+			modelNum[modelNumPointer] = inputMustBe
 		}
 	}
 
 	for _, ins := range ig.group {
 		success := applyInstruction(ins, modelNum, modelNumPointer, priorZ)
 		if !success {
-			return -1, false
+			return -1, false, modelNum
 		}
 	}
+
 	// after applying the group, return the z value
-	return vals[posByLetter["z"]], true
+	return vals[posByLetter["z"]], true, modelNum
 }
 
+// TODO remove this
 func applyCustomModelNumAtPos(defaultModelNum int, pos int, priorZ int) (int, bool) {
-	// FOUND: For the last digit to work... Need to set w=mod(z from prior, 26)-1.  If w is out of range at this point, the model number won't work out.
+	// shouldn't need this:
 	if pos == 13 { // last
+		log.Fatal("should not happen")
 		mustBeVal := (priorZ % 26) - 1
 		if checkRange(mustBeVal) {
 			fmt.Printf("Setting to %d, for priorZ %d\n", mustBeVal, priorZ)
@@ -258,11 +294,7 @@ func applyCustomModelNumAtPos(defaultModelNum int, pos int, priorZ int) (int, bo
 func applyInstruction(i *instruction, modelNum []int, modelNumPointer int, priorZ int) bool {
 	switch i.cmd {
 	case "inp": // inp a - Read an input value and write it to variable a.
-		customVal, success := applyCustomModelNumAtPos(modelNum[modelNumPointer], modelNumPointer, priorZ)
-		if !success {
-			return false
-		}
-		vals[posByLetter[i.operand1]] = customVal
+		vals[posByLetter[i.operand1]] = modelNum[modelNumPointer]
 	case "add": // add a b - Add the value of a to the value of b, then store the result in variable a.
 		if i.operand2IsNum {
 			vals[posByLetter[i.operand1]] += i.operand2Num
