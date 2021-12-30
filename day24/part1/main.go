@@ -23,6 +23,7 @@ type instruction struct {
 const MODEL_NUM_LEN = 14
 
 var maxModelNum = 99691891957938 - 1
+var minZ = 1000000
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -45,7 +46,13 @@ func main() {
 	var numTried int
 	for true {
 		numTried++
-		modelNum := randomlyGenerateNewModelNum()
+		modelNum, success := randomlyGenerateNewModelNum()
+		if numTried%100000 == 0 {
+			log.Printf("Num tried %d\n", numTried)
+		}
+		if !success {
+			continue
+		}
 		//fmt.Printf("Model num %d\n", modelNum)
 		if modelNum > maxModelNum {
 			vals = []int{0, 0, 0, 0} // reset the output vars
@@ -54,9 +61,10 @@ func main() {
 				fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
 				maxModelNum = modelNum
 			}
-		}
-		if numTried%100000 == 0 {
-			log.Printf("Num tried %d\n", numTried)
+			if vals[posByLetter["z"]] < minZ {
+				minZ = vals[posByLetter["z"]]
+				fmt.Printf("New minZ %d\n", minZ)
+			}
 		}
 	}
 
@@ -90,12 +98,12 @@ var positionsToOptimize = map[int]bool{
 // the key is the position in the model number, the value is what should
 // change on the subsequent position
 var preferences = map[int]int{
-	2:  3,
-	6:  -8,
-	7:  -7,
-	10: 2,
-	11: -4,
-	12: 7,
+	//3: 3,
+	7: -8,
+	//8:  -7,
+	11: 2,
+	//12: -4,
+	//13: 7,
 }
 
 func randomlyChooseFromSlice(i []int, num int) []int {
@@ -131,7 +139,7 @@ func getKeys(m map[int]int) []int {
 
 func getPrefsToUse() map[int]int {
 	keys := getKeys(preferences)
-	keysToUse := randomlyChooseFromSlice(keys, 3)
+	keysToUse := randomlyChooseFromSlice(keys, 6)
 	result := make(map[int]int, 0)
 	for _, k := range keysToUse {
 		result[k] = preferences[k]
@@ -139,11 +147,12 @@ func getPrefsToUse() map[int]int {
 	return result
 }
 
-func randomlyGenerateNewModelNum() int {
-	preferencesToUse := getPrefsToUse()
+func randomlyGenerateNewModelNum() (int, bool) {
+	preferencesToUse := getPrefsToUse() // TODO
+	preferencesToUse = preferences      // TODO
 	//fmt.Printf("using %+v\n", preferencesToUse)
 
-	newModelNum := ""
+	newModelNum := make([]int, 0)
 	for i := 0; i < MODEL_NUM_LEN; i++ {
 		var toAppend int
 		if v, ok := hardcoded[i]; ok {
@@ -151,25 +160,24 @@ func randomlyGenerateNewModelNum() int {
 		} else if _, ok := positionsToOptimize[i]; ok {
 			toAppend = generateRandomNumber(6, 9) // TODO maybe only 7-9
 		} else if v, ok := preferencesToUse[i]; ok {
-			if v < 0 {
-				toAppend = generateRandomNumber((v*-1)+1, 9)
-				newModelNum += strconv.Itoa(toAppend)
-				i++
-				toAppend = toAppend + v
-			} else {
-				toAppend = generateRandomNumber(1, 9-v)
-				newModelNum += strconv.Itoa(toAppend)
-				i++
-				toAppend = toAppend + v
+			prevNum := newModelNum[i-1]
+			toAppend = prevNum + v
+			if !checkRange(toAppend) {
+				return -1, false
 			}
 		} else {
 			toAppend = generateRandomNumber(1, 9)
 		}
-		newModelNum += strconv.Itoa(toAppend)
+		newModelNum = append(newModelNum, toAppend)
 	}
+	newModelNumStr := strings.Trim(strings.Replace(fmt.Sprint(newModelNum), " ", "", -1), "[]")
 
-	result, _ := strconv.Atoi(newModelNum)
-	return result
+	result, _ := strconv.Atoi(newModelNumStr)
+	return result, true
+}
+
+func checkRange(v int) bool {
+	return v >= 1 && v <= 9
 }
 
 func generateRandomNumber(min int, max int) int {
