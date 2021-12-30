@@ -54,18 +54,18 @@ func main() {
 			continue
 		}
 		//fmt.Printf("Model num %d\n", modelNum)
-		if modelNum > maxModelNum {
-			vals = []int{0, 0, 0, 0} // reset the output vars
-			isValid := isValidModelNumber(modelNum, instructions)
-			if isValid {
-				fmt.Printf("FOUND! %d. Val %d\n", modelNum, vals[posByLetter["z"]])
-				maxModelNum = modelNum
-			}
-			if vals[posByLetter["z"]] < minZ {
-				minZ = vals[posByLetter["z"]]
-				fmt.Printf("New minZ %d\n", minZ)
-			}
+		//if modelNum > maxModelNum {
+		vals = []int{0, 0, 0, 0} // reset the output vars
+		isValid := isValidModelNumber(modelNum, instructions)
+		if isValid {
+			fmt.Printf("%d\n", modelNum)
+			maxModelNum = modelNum
 		}
+		if vals[posByLetter["z"]] < minZ {
+			minZ = vals[posByLetter["z"]]
+			fmt.Printf("New minZ %d\n", minZ)
+		}
+		//}
 	}
 
 	// for i := 1; i < 10; i++ {
@@ -78,20 +78,22 @@ func main() {
 // Following this pattern NN69NN91NN799N
 // Best number so far: 99691891957938
 var hardcoded = map[int]int{
-	0: 9,
-	1: 9,
-	//2: 6,
-	//3: 9,
-	//6: 9,
-	//7:  1,
-	//10: 7,
-	//11: 9,
+	//0: 9,
+	//1: 9,
+	2:  6,
+	3:  9,
+	4:  1,
+	6:  9,
+	7:  1,
+	9:  5,
+	10: 7,
+	11: 9,
 	//12: 9,
 }
 
 // positions where we should only try 6-9
 var positionsToOptimize = map[int]bool{
-	2: true,
+	//: true,
 }
 
 // these changes tend to lead to the answer, based on analysis of the input
@@ -99,9 +101,9 @@ var positionsToOptimize = map[int]bool{
 // change on the subsequent position
 var preferences = map[int]int{
 	//3: 3,
-	7: -8,
+	//7: -8,
 	//8:  -7,
-	11: 2,
+	//11: 2,
 	//12: -4,
 	//13: 7,
 }
@@ -148,8 +150,8 @@ func getPrefsToUse() map[int]int {
 }
 
 func randomlyGenerateNewModelNum() (int, bool) {
-	preferencesToUse := getPrefsToUse() // TODO
-	preferencesToUse = preferences      // TODO
+	//preferencesToUse := getPrefsToUse() // TODO
+	preferencesToUse := preferences // TODO
 	//fmt.Printf("using %+v\n", preferencesToUse)
 
 	newModelNum := make([]int, 0)
