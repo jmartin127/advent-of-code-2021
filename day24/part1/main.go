@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -18,6 +17,11 @@ type instruction struct {
 	operand2IsNum    bool
 	operand2         string
 	operand2Num      int
+}
+
+// The instructions naturally fall into 14 groups, 1 for each digit
+type instructionGroup struct {
+	group []*instruction
 }
 
 const MODEL_NUM_LEN = 14
@@ -38,35 +42,35 @@ func main() {
 	// read the instructions
 	filepath := "day24/input.txt"
 	list := helpers.ReadFile(filepath)
-	instructions := parseInput(list)
+	instructionGroups := parseInput(list)
 
-	// isValid := isValidModelNumber(99691891957938, instructions)
-	// fmt.Printf("Is valid %t\n", isValid)
+	isValid := isValidModelNumber(99691891957938, instructionGroups)
+	fmt.Printf("Is valid %t\n", isValid)
 
-	var numTried int
-	for true {
-		numTried++
-		modelNum, success := randomlyGenerateNewModelNum()
-		if numTried%100000 == 0 {
-			log.Printf("Num tried %d\n", numTried)
-		}
-		if !success {
-			continue
-		}
-		//fmt.Printf("Model num %d\n", modelNum)
-		//if modelNum > maxModelNum {
-		vals = []int{0, 0, 0, 0} // reset the output vars
-		isValid := isValidModelNumber(modelNum, instructions)
-		if isValid {
-			fmt.Printf("%d\n", modelNum)
-			maxModelNum = modelNum
-		}
-		if vals[posByLetter["z"]] < minZ {
-			minZ = vals[posByLetter["z"]]
-			fmt.Printf("New minZ %d\n", minZ)
-		}
-		//}
-	}
+	// var numTried int
+	// for true {
+	// 	numTried++
+	// 	modelNum, success := randomlyGenerateNewModelNum()
+	// 	if numTried%100000 == 0 {
+	// 		log.Printf("Num tried %d\n", numTried)
+	// 	}
+	// 	if !success {
+	// 		continue
+	// 	}
+	// 	//fmt.Printf("Model num %d\n", modelNum)
+	// 	if modelNum > maxModelNum {
+	// 		vals = []int{0, 0, 0, 0} // reset the output vars
+	// 		isValid := isValidModelNumber(modelNum, instructions)
+	// 		if isValid {
+	// 			fmt.Printf("%d\n", modelNum)
+	// 			maxModelNum = modelNum
+	// 		}
+	// 		if vals[posByLetter["z"]] < minZ {
+	// 			minZ = vals[posByLetter["z"]]
+	// 			fmt.Printf("New minZ %d\n", minZ)
+	// 		}
+	// 	}
+	// }
 
 	// for i := 1; i < 10; i++ {
 	// 	vals = []int{0, 0, 0, 0} // reset the output vars
@@ -78,16 +82,16 @@ func main() {
 // Following this pattern NN69NN91NN799N
 // Best number so far: 99691891957938
 var hardcoded = map[int]int{
-	//0: 9,
-	//1: 9,
-	2:  6,
-	3:  9,
-	4:  1,
-	6:  9,
-	7:  1,
-	9:  5,
+	0: 9,
+	1: 9,
+	2: 6,
+	3: 9,
+	//4:  1,
+	6: 9,
+	//7:  1,
+	//9:  5,
 	10: 7,
-	11: 9,
+	//11: 9,
 	//12: 9,
 }
 
@@ -187,44 +191,78 @@ func generateRandomNumber(min int, max int) int {
 	return rand.Intn(max-min+1) + min
 }
 
-func isValidModelNumber(modelNum int, instructions []*instruction) bool {
-	checkModelNumber(modelNum, instructions)
-	if vals[posByLetter["z"]] == 0 {
-		return true
-	}
-	return false
+func isValidModelNumber(modelNum int, instructionGroups []*instructionGroup) bool {
+	vals = []int{0, 0, 0, 0} // reset the output vars
+	return checkModelNumber(modelNum, instructionGroups)
 }
 
 // Example model number: 13579246899999
-func checkModelNumber(modelNumStr int, instructions []*instruction) {
-	modelNum := strings.Split(strconv.Itoa(modelNumStr), "")
-	var modelNumPointer int
+func checkModelNumber(modelNumStr int, instructionGroups []*instructionGroup) bool {
+	// convert model number to slice of int
+	modelNumStrParts := strings.Split(strconv.Itoa(modelNumStr), "")
+	modelNum := make([]int, 0)
+	for _, m := range modelNumStrParts {
+		inputValInt, _ := strconv.Atoi(m)
+		modelNum = append(modelNum, inputValInt)
+	}
 
-	for _, i := range instructions {
-		// if i.cmd == "inp" {
-		// 	fmt.Printf("CURRENT VALS %+v\n", vals)
-		// }
-		var inputValInt int
-		if modelNumPointer <= len(modelNum)-1 {
-			inputValInt, _ = strconv.Atoi(modelNum[modelNumPointer])
+	// apply each group
+	var priorZ int
+	for i, ig := range instructionGroups {
+		currentZ, success := applyInstructionGroup(ig, modelNum, i, priorZ)
+		if !success {
+			fmt.Printf("False for ig index %d\n", i)
+			return false
 		}
-		usedInputVal := applyInstruction(i, inputValInt)
-		if usedInputVal {
-			modelNumPointer++
+		priorZ = currentZ
+	}
+
+	return true
+}
+
+func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer int, priorZ int) (int, bool) {
+	// FOUND: For the last digit to work, priorZ must be <= 10 && >= 2... BECAUSE we are subtracting 1 after doing the mod
+	if modelNumPointer == 13 {
+		if priorZ < 2 || priorZ > 10 {
+			return -1, false
+		} else {
+			return 0, true
 		}
 	}
-	//fmt.Printf("CURRENT VALS %+v\n", vals)
+
+	for _, ins := range ig.group {
+		success := applyInstruction(ins, modelNum, modelNumPointer, priorZ)
+		if !success {
+			return -1, false
+		}
+	}
+	// after applying the group, return the z value
+	return vals[posByLetter["z"]], true
+}
+
+func applyCustomModelNumAtPos(defaultModelNum int, pos int, priorZ int) (int, bool) {
+	// FOUND: For the last digit to work... Need to set w=mod(z from prior, 26)-1.  If w is out of range at this point, the model number won't work out.
+	if pos == 13 { // last
+		mustBeVal := (priorZ % 26) - 1
+		if checkRange(mustBeVal) {
+			fmt.Printf("Setting to %d, for priorZ %d\n", mustBeVal, priorZ)
+			return mustBeVal, true
+		}
+		return -1, false
+	}
+	return defaultModelNum, true
 }
 
 /*
  */
-func applyInstruction(i *instruction, inputVal int) bool {
-	var usedInputVal bool
-
+func applyInstruction(i *instruction, modelNum []int, modelNumPointer int, priorZ int) bool {
 	switch i.cmd {
 	case "inp": // inp a - Read an input value and write it to variable a.
-		vals[posByLetter[i.operand1]] = inputVal
-		usedInputVal = true
+		customVal, success := applyCustomModelNumAtPos(modelNum[modelNumPointer], modelNumPointer, priorZ)
+		if !success {
+			return false
+		}
+		vals[posByLetter[i.operand1]] = customVal
 	case "add": // add a b - Add the value of a to the value of b, then store the result in variable a.
 		if i.operand2IsNum {
 			vals[posByLetter[i.operand1]] += i.operand2Num
@@ -267,15 +305,26 @@ func applyInstruction(i *instruction, inputVal int) bool {
 		vals[posByLetter[i.operand1]] = equalVal
 	}
 
-	return usedInputVal
+	return true
 }
 
-func parseInput(list []string) []*instruction {
-	instructions := make([]*instruction, 0)
-	for _, line := range list {
-		instructions = append(instructions, parseLine(line))
+func parseInput(list []string) []*instructionGroup {
+	result := make([]*instructionGroup, 0)
+	ig := &instructionGroup{
+		group: make([]*instruction, 0),
 	}
-	return instructions
+	for _, line := range list {
+		ins := parseLine(line)
+		if ins.cmd == "inp" && len(ig.group) > 0 {
+			result = append(result, ig)
+			ig = &instructionGroup{
+				group: make([]*instruction, 0),
+			}
+		}
+		ig.group = append(ig.group, ins)
+	}
+	result = append(result, ig)
+	return result
 }
 
 /*
