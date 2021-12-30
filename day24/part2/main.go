@@ -101,6 +101,15 @@ var preferences = map[int]int{
 	//13: 7,
 }
 
+var specialCases = map[int]int{
+	13: -1,
+	12: -9,
+	11: -5,
+	10: 0,
+	8:  -8,
+	7:  -14,
+}
+
 func randomlyChooseFromSlice(i []int, num int) []int {
 	input := make([]int, 0)
 	for _, v := range i {
@@ -229,36 +238,11 @@ func convertIntArrayToInt(input []int) int {
 // return vals are: newZ, success, newModelNum
 func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer int, priorZ int, fixNumber bool) (int, bool, []int) {
 	if fixNumber {
-		// FOUND: For the last digit to work, priorZ must be <= 10 && >= 2... BECAUSE we are subtracting 1 after doing the mod
-		// FOUND: For the last digit to work... Need to set w=mod(z from prior, 26)-1.  If w is out of range at this point, the model number won't work out.
-		if modelNumPointer == 13 {
-			inputMustBe := (priorZ % 26) - 1
-			if !checkRange(inputMustBe) {
-				//vals[posByLetter["z"]] = 0 // set the final result, and skip running all the steps, since that's unnecessary
-				//return inputMustBe, true, modelNum
-				return -1, false, modelNum
-			}
-			//fmt.Printf("Changing val at pos 14 to %d\n", inputMustBe)
-			modelNum[modelNumPointer] = inputMustBe
-		}
-
-		// FOUND: Looks like this works: Set input to: (prior z mod 26)-9
-		if modelNumPointer == 12 {
-			inputMustBe := (priorZ % 26) - 9
+		if v, ok := specialCases[modelNumPointer]; ok {
+			inputMustBe := (priorZ % 26) + v
 			if !checkRange(inputMustBe) {
 				return -1, false, modelNum
 			}
-			//fmt.Printf("Changing val at pos 13 to %d\n", inputMustBe)
-			modelNum[modelNumPointer] = inputMustBe
-		}
-
-		// FOUND: Following same logic...
-		if modelNumPointer == 11 {
-			inputMustBe := (priorZ % 26) - 5
-			if !checkRange(inputMustBe) {
-				return -1, false, modelNum
-			}
-			//fmt.Printf("Changing val at pos 11 to %d\n", inputMustBe)
 			modelNum[modelNumPointer] = inputMustBe
 		}
 	}
