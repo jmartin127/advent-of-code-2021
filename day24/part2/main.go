@@ -63,7 +63,7 @@ func main() {
 // Originally NN69NN91NN799N
 var hardcoded = map[int]int{
 	0: 2,
-	//1: 1,
+	1: 7,
 	2: 6,
 	3: 9,
 	//4:  1,
@@ -91,9 +91,10 @@ var positionsToOptimize = map[int]bool{
 // Current lowest: 27691591657911
 // New lowest:     27691191279911
 // New lowest:     27691191224911
+// New lowest:     27691191213911
 var preferences = map[int]int{
 	//3: 3,
-	7: -8,
+	// 7: -8,
 	//8:  -7,
 	//11: 2,
 	//12: -4,
