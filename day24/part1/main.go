@@ -27,8 +27,7 @@ type instructionGroup struct {
 
 const MODEL_NUM_LEN = 14
 
-var maxModelNum = 0 // TODO 99691891957938 - 1
-var minZ = 1000000
+var maxModelNum = 0
 
 var posByLetter = map[string]int{
 	"w": 0,
@@ -45,9 +44,6 @@ func main() {
 	list := helpers.ReadFile(filepath)
 	instructionGroups := parseInput(list)
 
-	// isValid := isValidModelNumber(99699999955629, instructionGroups, true)
-	// fmt.Printf("Is valid %t, max %d. Final z %d\n", isValid, maxModelNum, vals[posByLetter["z"]])
-
 	var numTried int
 	for true {
 		numTried++
@@ -58,21 +54,15 @@ func main() {
 		if !success {
 			continue
 		}
-		//fmt.Printf("Model num %d\n", modelNum)
 		if modelNum > maxModelNum {
 			isValidModelNumber(modelNum, instructionGroups, true)
 		}
 	}
-
-	// for i := 1; i < 10; i++ {
-	// 	vals = []int{0, 0, 0, 0} // reset the output vars
-	// 	isValid := isValidModelNumber(i, instructions)
-	// 	fmt.Printf("MODEL_NUM %d. Is Valid %t, Vals=%+v\n", i, isValid, vals)
-	// }
 }
 
 // Following this pattern NN69NN91NN799N
 // Best number so far: 99691891957938
+// New Bestest number: 99691891979938
 var hardcoded = map[int]int{
 	0: 9,
 	1: 9,
@@ -278,21 +268,6 @@ func applyInstructionGroup(ig *instructionGroup, modelNum []int, modelNumPointer
 
 	// after applying the group, return the z value
 	return vals[posByLetter["z"]], true, modelNum
-}
-
-// TODO remove this
-func applyCustomModelNumAtPos(defaultModelNum int, pos int, priorZ int) (int, bool) {
-	// shouldn't need this:
-	if pos == 13 { // last
-		log.Fatal("should not happen")
-		mustBeVal := (priorZ % 26) - 1
-		if checkRange(mustBeVal) {
-			fmt.Printf("Setting to %d, for priorZ %d\n", mustBeVal, priorZ)
-			return mustBeVal, true
-		}
-		return -1, false
-	}
-	return defaultModelNum, true
 }
 
 /*
