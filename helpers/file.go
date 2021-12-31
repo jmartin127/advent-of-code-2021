@@ -112,7 +112,7 @@ func NewStringMatrixOfSize(numRows int, numCols int, initVal string) [][]string 
 }
 
 func PrintIntMatrix(matrix [][]int) {
-	for i := len(matrix) - 1; i >= 0; i-- {
+	for i := 0; i < len(matrix); i++ {
 		row := matrix[i]
 		for _, v := range row {
 			fmt.Printf("%d ", v)

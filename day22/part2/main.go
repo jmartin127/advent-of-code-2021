@@ -46,6 +46,7 @@ func main() {
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
 	distMatrix := compareCubes(instructions)
+	helpers.PrintIntMatrix(distMatrix)
 	countNumOverlapsPerCube(distMatrix)
 
 	// Plan of attack
@@ -119,6 +120,7 @@ func compareCubes(instructions []*instruction) [][]int {
 			if i == j {
 				continue
 			}
+			fmt.Printf("Setting value for i=%d, j=%d\n", i, j)
 			insI := instructions[i]
 			insJ := instructions[j]
 			numContained := findOverlap(insI, insJ)
