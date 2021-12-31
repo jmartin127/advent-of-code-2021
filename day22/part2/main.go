@@ -8,6 +8,12 @@ import (
 	"github.com/jmartin127/advent-of-code-2021/helpers"
 )
 
+type point struct {
+	x int
+	y int
+	z int
+}
+
 type instruction struct {
 	isOn   bool
 	xStart int
@@ -18,17 +24,125 @@ type instruction struct {
 	zEnd   int
 }
 
+func (i *instruction) corners() []*point {
+	return []*point{
+		{x: i.xStart, y: i.yStart, z: i.zStart},
+		{x: i.xStart, y: i.yEnd, z: i.zStart},
+		{x: i.xEnd, y: i.yEnd, z: i.zStart},
+		{x: i.xEnd, y: i.yStart, z: i.zStart},
+		{x: i.xStart, y: i.yStart, z: i.zEnd},
+		{x: i.xStart, y: i.yEnd, z: i.zEnd},
+		{x: i.xEnd, y: i.yEnd, z: i.zEnd},
+		{x: i.xEnd, y: i.yStart, z: i.zEnd},
+	}
+}
+
+func (i *instruction) containsPoint(p *point) bool {
+	return p.x >= i.xStart && p.x <= i.xEnd && p.y >= i.yStart && p.y <= i.yEnd && p.z >= i.zStart && p.z <= i.zEnd
+}
+
 func main() {
 	instructions := readInstructions()
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
+	distMatrix := compareCubes(instructions)
+	countNumOverlapsPerCube(distMatrix)
+
 	// Plan of attack
-	// 1. Write a method which determines if cubes overlap
-	//   a. For first cube, obtain the coordinates of every corner
-	//   b. Compare each of the 4 corners with the other cube, and determine how many corners are contained within the otehr cube.
-	// 2. Do pair-wise comparison of all cubes
-	// 3. Notate in a distance matrix which cubes overlap with which other cubes., and what type of overlap they have.
 	// 4. Determine how to proceed, depending on what the overlaps look like
+	/*
+		1 corner = 1422
+		2 corner = 761
+		3 corner = 0
+		4 corner = 142
+		5 corner = 0
+		6 corner = 0
+		7 corner = 0
+		8 corner = 20
+	*/
+
+	// Result: Turns out that there are only 4 types of overlaps:
+	// 1 corner: 1 corner contained
+	// 2 corner: 1 edge contained
+	// 4 corner: 1 half contained
+	// 5 corner: completely contained
+}
+
+/*
+Counts by position:
+i=0, count=13
+i=1, count=13
+i=2, count=11
+i=3, count=13
+i=4, count=13
+i=5, count=14
+i=6, count=13
+i=7, count=13
+i=8, count=13
+i=9, count=9
+i=10, count=4
+i=11, count=14
+i=12, count=4
+i=13, count=12
+i=14, count=1
+i=15, count=15
+i=16, count=8
+i=17, count=12
+i=18, count=11
+i=19, count=14
+i=20, count=12
+i=21, count=5
+*/
+func countNumOverlapsPerCube(distMatrix [][]int) {
+	result := make([][]int, 0)
+	for i := 0; i < len(distMatrix); i++ {
+		overlappingCubes := make([]int, 0)
+		for j := 0; j < len(distMatrix); j++ {
+			if distMatrix[i][j] > 0 {
+				overlappingCubes = append(overlappingCubes, j)
+			}
+		}
+		result = append(result, overlappingCubes)
+	}
+	fmt.Println("Overlapping cubes by position:")
+	for i, v := range result {
+		fmt.Printf("i=%d, overlapping-cubes=%+v\n", i, v)
+	}
+}
+
+// 2. Do pair-wise comparison of all cubes
+// 3. Notate in a distance matrix which cubes overlap with which other cubes., and what type of overlap they have.
+func compareCubes(instructions []*instruction) [][]int {
+	result := helpers.NewIntMatrixOfSize(len(instructions), len(instructions), 0)
+	for i := 0; i < len(instructions); i++ {
+		for j := 0; j < len(instructions); j++ {
+			if i == j {
+				continue
+			}
+			insI := instructions[i]
+			insJ := instructions[j]
+			numContained := findOverlap(insI, insJ)
+			result[i][j] = numContained
+			if numContained == 8 {
+				fmt.Printf("i=%d,j=%d,val=%d\n", i, j, numContained)
+				fmt.Printf("\ti=%+v\n\tj=%+v\n", insI, insJ)
+			}
+		}
+	}
+	return result
+}
+
+// 1. Write a method which determines if cubes overlap
+//   a. For first cube, obtain the coordinates of every corner
+//   b. Compare each of the 4 corners with the other cube, and determine how many corners are contained within the otehr cube.
+func findOverlap(a, b *instruction) int {
+	var numCornersContained int
+	for _, p := range a.corners() {
+		if b.containsPoint(p) {
+			numCornersContained++
+		}
+	}
+	return numCornersContained
 }
 
 func readInstructions() []*instruction {
@@ -42,29 +156,6 @@ func readInstructions() []*instruction {
 	}
 
 	return instructions
-}
-
-func processInstruction(ins *instruction, onCubes map[string]bool) {
-	if !isInRange(ins) {
-		return
-	}
-
-	// obtain all "off" instructions that come after this one
-}
-
-// The initialization procedure only uses cubes that have x, y, and z positions of at least -50 and at most 50. For now, ignore cubes outside this region.
-func isInRange(ins *instruction) bool {
-	return true
-	//return isPointInRange(ins.xStart, ins.yStart, ins.zStart) && isPointInRange(ins.xEnd, ins.yEnd, ins.zEnd)
-}
-
-func isPointInRange(x, y, z int) bool {
-	return true
-	return x >= -50 && x <= 50 && y >= -50 && y <= 50 && z >= -50 && z <= 50
-}
-
-func makeKey(x, y, z int) string {
-	return fmt.Sprintf("%d,%d,%d", x, y, z)
 }
 
 // on x=10..12,y=10..12,z=10..12
