@@ -49,7 +49,18 @@ func main() {
 	helpers.PrintIntMatrix(distMatrix)
 	countNumOverlapsPerCube(distMatrix)
 
-	// Plan of attack
+	// OK, after thinking about it... the plan will be to:
+	// 1. Compute how much each ON cube uniquely contributes
+	// 2. To do this, start with the first ON cube and do the following:
+	//     a. Compute the volume of the cube (as a starting point)
+	//     b. Cubes BEFORE this one in the list:
+	//       i.  If it is an OFF cube, ignore it.
+	//       ii. If it is an ON cube, subtract the volume that the 2 cubes overlap
+	//     c. Cubes AFTER this one in the list:
+	//       i.  If it is an OFF cube, subtact the volume that the 2 cubes overlap
+	//       ii. If it is an ON cube, ignore it.
+	// 3. Add up how much each cube uniquely contributes to get the final answer!
+
 	// 4. Determine how to proceed, depending on what the overlaps look like
 	/*
 		1 corner = 1422
@@ -95,12 +106,12 @@ i=20, count=12
 i=21, count=5
 */
 func countNumOverlapsPerCube(distMatrix [][]int) {
-	result := make([][]int, 0)
+	result := make([][]string, 0)
 	for i := 0; i < len(distMatrix); i++ {
-		overlappingCubes := make([]int, 0)
+		overlappingCubes := make([]string, 0)
 		for j := 0; j < len(distMatrix); j++ {
 			if distMatrix[i][j] > 0 {
-				overlappingCubes = append(overlappingCubes, j)
+				overlappingCubes = append(overlappingCubes, fmt.Sprintf("%d:%d", j, distMatrix[i][j]))
 			}
 		}
 		result = append(result, overlappingCubes)
