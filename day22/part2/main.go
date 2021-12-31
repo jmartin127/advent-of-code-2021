@@ -19,17 +19,29 @@ type instruction struct {
 }
 
 func main() {
+	instructions := readInstructions()
+	fmt.Printf("Number of instructions %+v\n", len(instructions))
+
+	// Plan of attack
+	// 1. Write a method which determines if cubes overlap
+	//   a. For first cube, obtain the coordinates of every corner
+	//   b. Compare each of the 4 corners with the other cube, and determine how many corners are contained within the otehr cube.
+	// 2. Do pair-wise comparison of all cubes
+	// 3. Notate in a distance matrix which cubes overlap with which other cubes., and what type of overlap they have.
+	// 4. Determine how to proceed, depending on what the overlaps look like
+}
+
+func readInstructions() []*instruction {
 	filepath := "day22/input.txt"
 	list := helpers.ReadFile(filepath)
 
-	onCubes := make(map[string]bool, 0)
+	instructions := make([]*instruction, 0)
 	for _, line := range list {
 		instruction := parseLine(line)
-		fmt.Printf("Processing instruction %+v\n", instruction)
-		processInstruction(instruction, onCubes)
-		fmt.Printf("Answer %d\n", len(onCubes))
+		instructions = append(instructions, instruction)
 	}
-	fmt.Printf("Answer %d\n", len(onCubes))
+
+	return instructions
 }
 
 func processInstruction(ins *instruction, onCubes map[string]bool) {
