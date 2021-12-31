@@ -24,6 +24,10 @@ type instruction struct {
 	zEnd   int
 }
 
+func (i *instruction) volume() int {
+	return (i.xEnd - i.xStart + 1) * (i.yEnd - i.yStart + 1) * (i.zEnd - i.zStart + 1)
+}
+
 func (i *instruction) corners() []*point {
 	return []*point{
 		{x: i.xStart, y: i.yStart, z: i.zStart},
@@ -45,66 +49,131 @@ func main() {
 	instructions := readInstructions()
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
-	distMatrix := compareCubes(instructions)
-	helpers.PrintIntMatrix(distMatrix)
-	countNumOverlapsPerCube(distMatrix)
-
-	// OK, after thinking about it... the plan will be to:
-	// 1. Compute how much each ON cube uniquely contributes
-	// 2. To do this, start with the first ON cube and do the following:
-	//     a. Compute the volume of the cube (as a starting point)
-	//     b. Cubes BEFORE this one in the list:
-	//       i.  If it is an OFF cube, ignore it.
-	//       ii. If it is an ON cube, subtract the volume that the 2 cubes overlap
-	//     c. Cubes AFTER this one in the list:
-	//       i.  If it is an OFF cube, subtact the volume that the 2 cubes overlap
-	//       ii. If it is an ON cube, ignore it.
+	var totalOn int
+	for i := range instructions {
+		// 1. Compute how much each ON cube uniquely contributes
+		totalOn += determineNumOnForSingleCuboid(i, instructions)
+	}
 	// 3. Add up how much each cube uniquely contributes to get the final answer!
-
-	// 4. Determine how to proceed, depending on what the overlaps look like
-	/*
-		1 corner = 1422
-		2 corner = 761
-		3 corner = 0
-		4 corner = 142
-		5 corner = 0
-		6 corner = 0
-		7 corner = 0
-		8 corner = 20
-	*/
-
-	// Result: Turns out that there are only 4 types of overlaps:
-	// 1 corner: 1 corner contained
-	// 2 corner: 1 edge contained
-	// 4 corner: 1 half contained
-	// 5 corner: completely contained
+	fmt.Printf("Answer %d\n", totalOn)
 }
 
+func determineNumOnForSingleCuboid(i int, instructions []*instruction) int {
+	thisCube := instructions[i]
+	// 2. To do this, start with the first ON cube and do the following:
+	if !thisCube.isOn {
+		return 0
+	}
+
+	//     a. Compute the volume of the cube (as a starting point)
+	numOn := thisCube.volume()
+	for j := 0; j < len(instructions); j++ {
+		if i == j {
+			continue // don't compare against itself
+		}
+
+		otherCube := instructions[j]
+		if j < i { // before this cuboid
+			//     b. Cubes BEFORE this one in the list:
+			if !otherCube.isOn {
+				//       i.  If it is an OFF cube, ignore it.
+				continue
+			} else {
+				//       ii. If it is an ON cube, subtract the volume where the 2 cubes overlap
+				numOn -= findSharedVolumeBetweenTwoCuboids(thisCube, otherCube)
+				//       Add back in volume where the other cube was negated by an OFF in between the 2 ON cubes
+				numOn += adjustForNegatedCubeBetween2OnCubes(j, i, instructions)
+			}
+		} else { // after this cuboid
+			//     c. Cubes AFTER this one in the list:
+			if !otherCube.isOn {
+				//       i.  If it is an OFF cube, subtract the volume that the 2 cubes overlap
+				// NOTE: still need to account for the fact that could have already been subtracted by another OFF cube that overlaps the same region
+				numOn -= findSharedVolumeBetweenTwoCuboids(thisCube, otherCube)
+			} else {
+				//       ii. If it is an ON cube, ignore it.
+				continue
+			}
+		}
+	}
+
+	return numOn
+}
+
+// The scenario here is.... We have subtracted from the contribution of an ON cube, because a prior ON cube overlaps it.
+// However, After the first one was turned ON, there could have been 1 (or more) cubes negate part of that cube.  So need
+// to add that back in.
+func adjustForNegatedCubeBetween2OnCubes(first, second int, instructions []*instruction) int {
+	var total int
+	for i := first + 1; i < second-1; i++ {
+		current := instructions[i]
+		if current.isOn {
+			continue
+		}
+		sharedVolume := findSharedVolumeBetweenThreeCuboids(instructions[first], instructions[second], current)
+		total += sharedVolume
+	}
+	return total
+}
+
+// Reference: https://stackoverflow.com/questions/5556170/finding-shared-volume-of-two-overlapping-cuboids
 /*
-Counts by position:
-i=0, count=13
-i=1, count=13
-i=2, count=11
-i=3, count=13
-i=4, count=13
-i=5, count=14
-i=6, count=13
-i=7, count=13
-i=8, count=13
-i=9, count=9
-i=10, count=4
-i=11, count=14
-i=12, count=4
-i=13, count=12
-i=14, count=1
-i=15, count=15
-i=16, count=8
-i=17, count=12
-i=18, count=11
-i=19, count=14
-i=20, count=12
-i=21, count=5
+max(min(a',x')-max(a,x),0)
+* max(min(b',y')-max(b,y),0)
+* max(min(c',z')-max(c,z),0)
+NOTE: x' > x
+NOTE: x = a.xStart //
+      y = a.yStart //
+	  z = a.zStart //
+	  x' = a.xEnd //
+	  y' = a.yEnd //
+	  z' = a.zEnd //
+NOTE: a = b.xStart //
+      b = b.yStart //
+	  c = b.zStart //
+	  a' = b.xEnd //
+	  b' = b.yEnd //
+	  c' = b.zEnd //
 */
+func findSharedVolumeBetweenTwoCuboids(a, b *instruction) int {
+	shared := findSharedCubeBetweenTwoCuboids(a, b)
+	return max(shared.xEnd-shared.xStart, 0) *
+		max(shared.yEnd-shared.yStart, 0) *
+		max(shared.zEnd-shared.zStart, 0)
+}
+
+// For more than 2, we should be able to just keep finding the intersection
+func findSharedVolumeBetweenThreeCuboids(a, b, c *instruction) int {
+	shared := findSharedCubeBetweenTwoCuboids(a, b)
+	return findSharedVolumeBetweenTwoCuboids(c, shared)
+}
+
+func findSharedCubeBetweenTwoCuboids(a, b *instruction) *instruction {
+	xStart := max(b.xStart, a.xStart)
+	xEnd := min(b.xEnd, a.xEnd)
+	yStart := max(b.yStart, a.yStart)
+	yEnd := min(b.yEnd, a.yEnd)
+	zStart := max(b.zStart, a.zStart)
+	zEnd := min(b.zEnd, a.zEnd)
+	return &instruction{xStart: xStart, xEnd: xEnd,
+		yStart: yStart, yEnd: yEnd,
+		zStart: zStart, zEnd: zEnd}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func countNumOverlapsPerCube(distMatrix [][]int) {
 	result := make([][]string, 0)
 	for i := 0; i < len(distMatrix); i++ {
