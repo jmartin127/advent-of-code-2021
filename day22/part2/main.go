@@ -49,15 +49,22 @@ func main() {
 	instructions := readInstructions()
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
-	var totalOn int
+	/*
+			Finally have what I think is a good approach:
+			1. Loop through all OFF instructions and convert them to ON instructions by:
+			  a. Determine which of the ON cubes prior to this OFF cube, it overlaps with.
+			  b. Split the ON cube it overlaps with into 27 cubes. These become 26 ON cubes, and 1 gets deleted (the one where it overlaps)
+			2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
+			  a. Implement an algorithm to find the union volume of all ON cubes
+			  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
+			NOTE: Can tell if step #1 worked by just feeding the output of all ON cubes into part 1 of previous code and see if get same answer
+		    NOTE: Will decide on 2a or 2b strategy avert seeing how many cubers result from step #1.
+	*/
 	for i := range instructions {
-		// 1. Compute how much each ON cube uniquely contributes
-		totalOn += determineNumOnForSingleCuboid(i, instructions)
 	}
-	// 3. Add up how much each cube uniquely contributes to get the final answer!
-	fmt.Printf("Answer %d\n", totalOn)
 }
 
+// This approach is no good
 func determineNumOnForSingleCuboid(i int, instructions []*instruction) int {
 	thisCube := instructions[i]
 	// 2. To do this, start with the first ON cube and do the following:
