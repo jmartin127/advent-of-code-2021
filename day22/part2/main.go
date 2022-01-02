@@ -86,7 +86,6 @@ func main() {
 			break
 		}
 	}
-	fmt.Println("Final instructions:")
 	for _, ins := range currentInstructions {
 		fmt.Printf("%s\n", ins.asString())
 	}
@@ -105,17 +104,12 @@ func findNextOffInstructionAndApplyToPriorOns(instructions []*instruction) (bool
 	firstOffCube := instructions[firstOffCubeIndex]
 
 	result := make([]*instruction, 0)
-	fmt.Printf("first cube index %d\n", firstOffCubeIndex)
 	for i := 0; i < firstOffCubeIndex; i++ {
-		fmt.Printf("Checking %d\n", i)
 		otherOnCube := instructions[i]
-		fmt.Printf("First off %+v\n", firstOffCube)
-		fmt.Printf("Other cube %+v\n", otherOnCube)
 		// we already know that otherCube is an ON cube, due to how we are iterating
 		// if it overlaps with the OFF cube, then break it up (to handle the OFF condition)
 		if findSharedVolumeBetweenTwoCuboids(firstOffCube, otherOnCube) > 0 {
 			newInstructions := divideOnCubeUsingOverlappingOffCube(otherOnCube, firstOffCube)
-			fmt.Printf("num new instructions %d\n", len(newInstructions))
 			result = append(result, newInstructions...)
 		} else {
 			result = append(result, otherOnCube) // still need to keep other ON cubes that don't overlap
@@ -136,7 +130,6 @@ func findNextOffInstructionAndApplyToPriorOns(instructions []*instruction) (bool
 func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction) []*instruction {
 	// first find the overlapping cube (guaranteed to be non-zero, due to caller function logic)
 	o := findSharedCubeBetweenTwoCuboids(b, offCube)
-	fmt.Printf("OVERLAP %+v\n", o)
 
 	// NOTE: This part really reminds me of the cubes in a Rubick's cube: top layer, middle layer, bottom layer
 	newInstructions := []*instruction{
@@ -274,7 +267,6 @@ NOTE: a = b.xStart //
 */
 func findSharedVolumeBetweenTwoCuboids(a, b *instruction) int {
 	shared := findSharedCubeBetweenTwoCuboids(a, b)
-	fmt.Printf("Shared cube %+v\n", shared)
 	return max(shared.xEnd-shared.xStart+1, 0) *
 		max(shared.yEnd-shared.yStart+1, 0) *
 		max(shared.zEnd-shared.zStart+1, 0)
