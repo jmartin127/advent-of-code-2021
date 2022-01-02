@@ -109,7 +109,7 @@ func main() {
 	}
 	total = 0
 	for _, ins := range currentInstructions {
-		fmt.Printf("%s,v=%d\n", ins.asString(), ins.volume())
+		//fmt.Printf("%s,v=%d\n", ins.asString(), ins.volume())
 		total += ins.volume()
 	}
 	fmt.Printf("Final answer (hopefully!): %d\n", total)
@@ -140,7 +140,7 @@ func findNextOverlappingOnInstructionAndSplitAsNeeded(instructions []*instructio
 			if i == j {
 				continue
 			}
-			if findSharedVolumeBetweenTwoCuboids(insI, insJ) > 0 {
+			if cubesHaveOverlap(insI, insJ) {
 				return resolveOverlappingOnCubes(insI, insJ), i, j
 			}
 		}
@@ -352,6 +352,13 @@ func findSharedVolumeBetweenTwoCuboids(a, b *instruction) int {
 	return max(shared.xEnd-shared.xStart+1, 0) *
 		max(shared.yEnd-shared.yStart+1, 0) *
 		max(shared.zEnd-shared.zStart+1, 0)
+}
+
+func cubesHaveOverlap(a, b *instruction) bool {
+	shared := findSharedCubeBetweenTwoCuboids(a, b)
+	return max(shared.xEnd-shared.xStart+1, 0) > 0 &&
+		max(shared.yEnd-shared.yStart+1, 0) > 0 &&
+		max(shared.zEnd-shared.zStart+1, 0) > 0
 }
 
 // For more than 2, we should be able to just keep finding the intersection
