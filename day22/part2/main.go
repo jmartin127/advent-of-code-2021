@@ -71,13 +71,6 @@ func main() {
 	instructions := readInstructions()
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
-	/*
-			2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
-			  a. Implement an algorithm to find the union volume of all ON cubes
-			  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
-			NOTE: Can tell if step #1 worked by just feeding the output of all ON cubes into part 1 of previous code and see if get same answer
-		    NOTE: Will decide on 2a or 2b strategy avert seeing how many cubers result from step #1.
-	*/
 	currentInstructions := instructions
 	for true {
 		foundOffCube, newInstructions := findNextOffInstructionAndApplyToPriorOns(currentInstructions)
@@ -86,9 +79,25 @@ func main() {
 			break
 		}
 	}
+	var total int
 	for _, ins := range currentInstructions {
 		fmt.Printf("%s\n", ins.asString())
+		total += ins.volume()
 	}
+	fmt.Printf("After only ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", total)
+
+	/*
+		2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
+		  a. Implement an algorithm to find the union volume of all ON cubes
+		  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
+	*/
+	// NOTE: Going to try my 2b approach first
+
+}
+
+// NOTE: Order should not matter at this point
+func findNextOverlappingOnInstructionAndSplitAsNeeded(instructions []*instruction) {
+
 }
 
 /*
