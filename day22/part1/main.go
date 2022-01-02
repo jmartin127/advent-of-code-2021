@@ -19,7 +19,7 @@ type instruction struct {
 }
 
 func main() {
-	filepath := "input.txt"
+	filepath := "day22/new-input.txt"
 	list := helpers.ReadFile(filepath)
 
 	onCubes := make(map[string]bool, 0)

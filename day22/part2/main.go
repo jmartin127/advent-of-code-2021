@@ -24,7 +24,29 @@ type instruction struct {
 	zEnd   int
 }
 
+// on x=-41..9,y=-7..43,z=-33..15
+func (i *instruction) asString() string {
+	var result string
+	if i.isOn {
+		result += "on "
+	} else {
+		result += "off "
+	}
+	result += fmt.Sprintf("x=%d..%d,y=%d..%d,z=%d..%d", i.xStart, i.xEnd, i.yStart, i.yEnd, i.zStart, i.zEnd)
+	return result
+}
+
+// NOTE: Volume can be zero after dividing cubes
 func (i *instruction) volume() int {
+	if i.xStart > i.xEnd {
+		return 0
+	}
+	if i.yStart > i.yEnd {
+		return 0
+	}
+	if i.zStart > i.zEnd {
+		return 0
+	}
 	return (i.xEnd - i.xStart + 1) * (i.yEnd - i.yStart + 1) * (i.zEnd - i.zStart + 1)
 }
 
@@ -50,18 +72,126 @@ func main() {
 	fmt.Printf("Number of instructions %+v\n", len(instructions))
 
 	/*
-			Finally have what I think is a good approach:
-			1. Loop through all OFF instructions and convert them to ON instructions by:
-			  a. Determine which of the ON cubes prior to this OFF cube, it overlaps with.
-			  b. Split the ON cube it overlaps with into 27 cubes. These become 26 ON cubes, and 1 gets deleted (the one where it overlaps)
 			2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
 			  a. Implement an algorithm to find the union volume of all ON cubes
 			  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
 			NOTE: Can tell if step #1 worked by just feeding the output of all ON cubes into part 1 of previous code and see if get same answer
 		    NOTE: Will decide on 2a or 2b strategy avert seeing how many cubers result from step #1.
 	*/
-	for i := range instructions {
+	currentInstructions := instructions
+	for true {
+		foundOffCube, newInstructions := findNextOffInstructionAndApplyToPriorOns(currentInstructions)
+		currentInstructions = newInstructions
+		if !foundOffCube {
+			break
+		}
 	}
+	fmt.Println("Final instructions:")
+	for _, ins := range currentInstructions {
+		fmt.Printf("%s\n", ins.asString())
+	}
+}
+
+/*
+	1. Loop through all OFF instructions and convert them to ON instructions by:
+	  a. Determine which of the ON cubes prior to this OFF cube, it overlaps with.
+	  b. Split the ON cube it overlaps with into 27 cubes. These become 26 ON cubes, and 1 gets deleted (the one where it overlaps)
+*/
+func findNextOffInstructionAndApplyToPriorOns(instructions []*instruction) (bool, []*instruction) {
+	found, firstOffCubeIndex := findFirstOffCubeIndex(instructions)
+	if !found {
+		return false, instructions
+	}
+	firstOffCube := instructions[firstOffCubeIndex]
+
+	result := make([]*instruction, 0)
+	fmt.Printf("first cube index %d\n", firstOffCubeIndex)
+	for i := 0; i < firstOffCubeIndex; i++ {
+		fmt.Printf("Checking %d\n", i)
+		otherOnCube := instructions[i]
+		fmt.Printf("First off %+v\n", firstOffCube)
+		fmt.Printf("Other cube %+v\n", otherOnCube)
+		// we already know that otherCube is an ON cube, due to how we are iterating
+		// if it overlaps with the OFF cube, then break it up (to handle the OFF condition)
+		if findSharedVolumeBetweenTwoCuboids(firstOffCube, otherOnCube) > 0 {
+			newInstructions := divideOnCubeUsingOverlappingOffCube(otherOnCube, firstOffCube)
+			fmt.Printf("num new instructions %d\n", len(newInstructions))
+			result = append(result, newInstructions...)
+		} else {
+			result = append(result, otherOnCube) // still need to keep other ON cubes that don't overlap
+		}
+	}
+
+	// append everything AFTER the OFF cube
+	for i := firstOffCubeIndex + 1; i < len(instructions); i++ {
+		result = append(result, instructions[i])
+	}
+
+	return true, result
+}
+
+// NOTE: this would naturally result in 27 cubes, but we don't care about:
+// a) cubes which have zero volume
+// b) the overlapping cube
+func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction) []*instruction {
+	// first find the overlapping cube (guaranteed to be non-zero, due to caller function logic)
+	o := findSharedCubeBetweenTwoCuboids(b, offCube)
+	fmt.Printf("OVERLAP %+v\n", o)
+
+	// NOTE: This part really reminds me of the cubes in a Rubick's cube: top layer, middle layer, bottom layer
+	newInstructions := []*instruction{
+		// top layer
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},     // #1
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},           // #2
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},         // #3
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},       // #4
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},             // #5
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zEnd + 1, zEnd: b.zEnd},           // #6
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zEnd + 1, zEnd: b.zEnd}, // #7
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zEnd + 1, zEnd: b.zEnd},       // #8
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zEnd + 1, zEnd: b.zEnd},     // #9
+
+		// middle layer
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zStart, zEnd: o.zEnd}, // #1
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zStart, zEnd: o.zEnd},       // #2
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: o.zStart, zEnd: o.zEnd},     // #3
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd},   // #4
+		// {isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd},             // #5 EXCLUDE this one, this is the region that was turne doff
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd},           // #6
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zStart, zEnd: o.zEnd}, // #7
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zStart, zEnd: o.zEnd},       // #8
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: o.zStart, zEnd: o.zEnd},     // #9
+
+		// bottom layer
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},     // #1
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},           // #2
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yEnd + 1, yEnd: b.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},         // #3
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: o.yStart, yEnd: o.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},       // #4
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},             // #5
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: b.zStart, zEnd: o.zStart - 1},           // #6
+		{isOn: true, xStart: b.xStart, xEnd: o.xStart - 1, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1}, // #7
+		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1},       // #8
+		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1},     // #9
+	}
+
+	// filter out instructions with volume 0
+	result := make([]*instruction, 0)
+	for _, ins := range newInstructions {
+		if ins.volume() > 0 {
+			result = append(result, ins)
+		}
+	}
+
+	return result
+}
+
+func findFirstOffCubeIndex(instructions []*instruction) (bool, int) {
+	for i, ins := range instructions {
+		if !ins.isOn {
+			return true, i
+		}
+	}
+	return false, -1
 }
 
 // This approach is no good
@@ -144,9 +274,10 @@ NOTE: a = b.xStart //
 */
 func findSharedVolumeBetweenTwoCuboids(a, b *instruction) int {
 	shared := findSharedCubeBetweenTwoCuboids(a, b)
-	return max(shared.xEnd-shared.xStart, 0) *
-		max(shared.yEnd-shared.yStart, 0) *
-		max(shared.zEnd-shared.zStart, 0)
+	fmt.Printf("Shared cube %+v\n", shared)
+	return max(shared.xEnd-shared.xStart+1, 0) *
+		max(shared.yEnd-shared.yStart+1, 0) *
+		max(shared.zEnd-shared.zStart+1, 0)
 }
 
 // For more than 2, we should be able to just keep finding the intersection
