@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -91,16 +92,24 @@ func main() {
 		fmt.Printf("%s\n", ins.asString())
 		total += ins.volume()
 	}
-	fmt.Printf("After only ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", total)
+	fmt.Printf("After only %d ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", len(currentInstructions), total)
 
 	/*
 		2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
 		  a. Implement an algorithm to find the union volume of all ON cubes
 		  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
 	*/
-	// NOTE: Going to try my 2b approach first
+	// NOTE: Going to try my 2a approach, since 2b only worked on all examples, but no perfomant on my input
+	var numIterations int
 	for true {
-		fmt.Printf("Number of instructions %d\n", len(currentInstructions))
+		numIterations++
+		if len(currentInstructions) > 50000 {
+			fmt.Println("NOT GOING TO COMPLETE")
+			break
+		}
+		if numIterations%100 == 0 {
+			log.Printf("Iteration %d. Number of instructions %d\n", numIterations, len(currentInstructions))
+		}
 		foundOverlap, newInstructions := findAndResolveNextPairOfOverlappingOnCubes(currentInstructions)
 		currentInstructions = newInstructions
 		if !foundOverlap {
@@ -206,7 +215,7 @@ func findNextOffInstructionAndApplyToPriorOns(instructions []*instruction) (bool
 // NOTE: this would naturally result in 27 cubes, but we don't care about:
 // a) cubes which have zero volume
 // b) the overlapping cube
-func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction, keepOverlap bool) []*instruction {
+func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction) []*instruction {
 	// first find the overlapping cube (guaranteed to be non-zero, due to caller function logic)
 	o := findSharedCubeBetweenTwoCuboids(b, offCube)
 
@@ -245,9 +254,9 @@ func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction, keepOverlap bo
 		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1},     // #9
 	}
 
-	if keepOverlap {
-		newInstructions = append(newInstructions, &instruction{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd})
-	}
+	// if keepOverlap {
+	// 	newInstructions = append(newInstructions, &instruction{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd})
+	// }
 
 	// filter out instructions with volume 0
 	result := make([]*instruction, 0)
