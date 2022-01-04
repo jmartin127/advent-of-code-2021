@@ -76,7 +76,6 @@ func (i *instruction) containsPoint(p *point) bool {
 
 func main() {
 	instructions := readInstructions()
-	//fmt.Printf("Number of instructions %+v\n", len(instructions))
 
 	currentInstructions := instructions
 	for true {
@@ -86,29 +85,9 @@ func main() {
 			break
 		}
 	}
-	var total int
 	for _, ins := range currentInstructions {
 		fmt.Printf("%s\n", ins.asString())
-		total += ins.volume()
 	}
-	// fmt.Printf("After only %d ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", len(currentInstructions), total)
-
-	/*
-		2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
-		  a. Implement an algorithm to find the union volume of all ON cubes
-		  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
-	*/
-	// NOTE: Going to try my 2a approach, since 2b only worked on all examples, but no perfomant on my input
-	// cubes := make([]*helpers.Cube, 0)
-	// for _, ins := range currentInstructions {
-	// 	cubes = append(cubes, convertInstructionToCube(ins))
-	// }
-	// fmt.Printf("Input cubes\n")
-	// for _, c := range cubes {
-	// 	fmt.Printf("Cube: %s\n", c.AsString())
-	// }
-	// answer := helpers.Volume_of_union(cubes)
-	// fmt.Printf("Answer %d\n", answer)
 }
 
 func convertInstructionToCube(ins *instruction) *helpers.Cube {
@@ -119,61 +98,6 @@ func convertInstructionToCube(ins *instruction) *helpers.Cube {
 		helpers.NewInterval(ins.zStart, ins.zEnd+1),
 	)
 }
-
-// func findAndResolveNextPairOfOverlappingOnCubes(instructions []*instruction) (bool, []*instruction) {
-// 	//fmt.Printf("START LEN %d\n", len(instructions))
-// 	additionalInstructions, toDeleteIndexOne, toDeleteIndexTwo := findNextOverlappingOnInstructionAndSplitAsNeeded(instructions)
-// 	//fmt.Printf("Num additional %d\n", len(additionalInstructions))
-// 	if len(additionalInstructions) == 0 { // no more overlaps
-// 		return false, instructions
-// 	}
-// 	for i, ins := range instructions {
-// 		if i == toDeleteIndexOne || i == toDeleteIndexTwo {
-// 			continue
-// 		}
-// 		additionalInstructions = append(additionalInstructions, ins)
-// 	}
-
-// 	//fmt.Printf("FINISH len %d\n", len(additionalInstructions))
-// 	return true, additionalInstructions
-// }
-
-// // NOTE: Order should not matter at this point
-// func findNextOverlappingOnInstructionAndSplitAsNeeded(instructions []*instruction) ([]*instruction, int, int) {
-// 	for i, insI := range instructions {
-// 		for j, insJ := range instructions {
-// 			if i == j {
-// 				continue
-// 			}
-// 			if cubesHaveOverlap(insI, insJ) {
-// 				return resolveOverlappingOnCubes(insI, insJ), i, j
-// 			}
-// 		}
-// 	}
-// 	return []*instruction{}, -1, -1
-// }
-
-// func resolveOverlappingOnCubes(a, b *instruction) []*instruction {
-// 	if a.isEqual(b) {
-// 		return []*instruction{a}
-// 	}
-
-// 	//fmt.Printf("Comparing A %+v\n", a)
-// 	//fmt.Printf("Comparing B %+v\n", b)
-
-// 	newInstructionsA := divideOnCubeUsingOverlappingOffCube(a, b, true) // only keep the overlap for 1 of them
-// 	//fmt.Printf("num instrucations A %d\n", len(newInstructionsA))
-// 	newInstructionsB := divideOnCubeUsingOverlappingOffCube(b, a, false)
-// 	//fmt.Printf("num instrucations B %d\n", len(newInstructionsB))
-// 	result := make([]*instruction, 0)
-// 	result = append(result, newInstructionsA...)
-// 	result = append(result, newInstructionsB...)
-
-// 	// for _, ins := range result {
-// 	// 	fmt.Printf("Result %+v\n", ins)
-// 	// }
-// 	return result
-// }
 
 /*
 	1. Loop through all OFF instructions and convert them to ON instructions by:
@@ -249,10 +173,6 @@ func divideOnCubeUsingOverlappingOffCube(b, offCube *instruction) []*instruction
 		{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1},       // #8
 		{isOn: true, xStart: o.xEnd + 1, xEnd: b.xEnd, yStart: b.yStart, yEnd: o.yStart - 1, zStart: b.zStart, zEnd: o.zStart - 1},     // #9
 	}
-
-	// if keepOverlap {
-	// 	newInstructions = append(newInstructions, &instruction{isOn: true, xStart: o.xStart, xEnd: o.xEnd, yStart: o.yStart, yEnd: o.yEnd, zStart: o.zStart, zEnd: o.zEnd})
-	// }
 
 	// filter out instructions with volume 0
 	result := make([]*instruction, 0)
