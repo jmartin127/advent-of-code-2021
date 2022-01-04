@@ -1,5 +1,8 @@
 package helpers
 
+// NOTE: there is still a bug in here that I haven't quite worked out. This is a port from the Python code here:
+// https://stackoverflow.com/questions/69137352/computing-the-volume-of-the-union-of-axis-aligned-cubes
+
 import (
 	"fmt"
 	"sort"
@@ -134,13 +137,6 @@ func Volume_of_union(cubes []*Cube) int {
 
 	return result
 }
-
-// func keyToInts(key string) []int {
-// 	parts := strings.Split(key, ",")
-// 	first, _ := strconv.Atoi(parts[0])
-// 	second, _ := strconv.Atoi(parts[1])
-// 	return []int{first, second}
-// }
 
 func appendToMap(sub_problems map[string][]*Interval, key string, inter *Interval) {
 	if val, ok := sub_problems[key]; ok {

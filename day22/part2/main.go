@@ -45,13 +45,7 @@ func (i *instruction) asString() string {
 
 // NOTE: Volume can be zero after dividing cubes
 func (i *instruction) volume() int {
-	if i.xStart > i.xEnd {
-		return 0
-	}
-	if i.yStart > i.yEnd {
-		return 0
-	}
-	if i.zStart > i.zEnd {
+	if i.xStart > i.xEnd || i.yStart > i.yEnd || i.zStart > i.zEnd {
 		return 0
 	}
 	return (i.xEnd - i.xStart + 1) * (i.yEnd - i.yStart + 1) * (i.zEnd - i.zStart + 1)
@@ -88,15 +82,6 @@ func main() {
 	for _, ins := range currentInstructions {
 		fmt.Printf("%s\n", ins.asString())
 	}
-}
-
-func convertInstructionToCube(ins *instruction) *helpers.Cube {
-	// NOTE cubes are not inclusive, so need to add 1
-	return helpers.NewCube(
-		helpers.NewInterval(ins.xStart, ins.xEnd+1),
-		helpers.NewInterval(ins.yStart, ins.yEnd+1),
-		helpers.NewInterval(ins.zStart, ins.zEnd+1),
-	)
 }
 
 /*
