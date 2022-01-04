@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -77,7 +76,7 @@ func (i *instruction) containsPoint(p *point) bool {
 
 func main() {
 	instructions := readInstructions()
-	fmt.Printf("Number of instructions %+v\n", len(instructions))
+	//fmt.Printf("Number of instructions %+v\n", len(instructions))
 
 	currentInstructions := instructions
 	for true {
@@ -92,7 +91,7 @@ func main() {
 		fmt.Printf("%s\n", ins.asString())
 		total += ins.volume()
 	}
-	fmt.Printf("After only %d ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", len(currentInstructions), total)
+	// fmt.Printf("After only %d ON cubes remain.  Note: still has overlapps we need to resolve: %d\n", len(currentInstructions), total)
 
 	/*
 		2. Now we are left with ONLY ON cubes, and can use 1 of 2 strategies:
@@ -100,84 +99,81 @@ func main() {
 		  b. Use the same strategy to split overlapping ON cubes, and then just add up their volume.
 	*/
 	// NOTE: Going to try my 2a approach, since 2b only worked on all examples, but no perfomant on my input
-	var numIterations int
-	for true {
-		numIterations++
-		if len(currentInstructions) > 50000 {
-			fmt.Println("NOT GOING TO COMPLETE")
-			break
-		}
-		if numIterations%100 == 0 {
-			log.Printf("Iteration %d. Number of instructions %d\n", numIterations, len(currentInstructions))
-		}
-		foundOverlap, newInstructions := findAndResolveNextPairOfOverlappingOnCubes(currentInstructions)
-		currentInstructions = newInstructions
-		if !foundOverlap {
-			break
-		}
-	}
-	total = 0
-	for _, ins := range currentInstructions {
-		//fmt.Printf("%s,v=%d\n", ins.asString(), ins.volume())
-		total += ins.volume()
-	}
-	fmt.Printf("Final answer (hopefully!): %d\n", total)
-}
-
-func findAndResolveNextPairOfOverlappingOnCubes(instructions []*instruction) (bool, []*instruction) {
-	//fmt.Printf("START LEN %d\n", len(instructions))
-	additionalInstructions, toDeleteIndexOne, toDeleteIndexTwo := findNextOverlappingOnInstructionAndSplitAsNeeded(instructions)
-	//fmt.Printf("Num additional %d\n", len(additionalInstructions))
-	if len(additionalInstructions) == 0 { // no more overlaps
-		return false, instructions
-	}
-	for i, ins := range instructions {
-		if i == toDeleteIndexOne || i == toDeleteIndexTwo {
-			continue
-		}
-		additionalInstructions = append(additionalInstructions, ins)
-	}
-
-	//fmt.Printf("FINISH len %d\n", len(additionalInstructions))
-	return true, additionalInstructions
-}
-
-// NOTE: Order should not matter at this point
-func findNextOverlappingOnInstructionAndSplitAsNeeded(instructions []*instruction) ([]*instruction, int, int) {
-	for i, insI := range instructions {
-		for j, insJ := range instructions {
-			if i == j {
-				continue
-			}
-			if cubesHaveOverlap(insI, insJ) {
-				return resolveOverlappingOnCubes(insI, insJ), i, j
-			}
-		}
-	}
-	return []*instruction{}, -1, -1
-}
-
-func resolveOverlappingOnCubes(a, b *instruction) []*instruction {
-	if a.isEqual(b) {
-		return []*instruction{a}
-	}
-
-	//fmt.Printf("Comparing A %+v\n", a)
-	//fmt.Printf("Comparing B %+v\n", b)
-
-	newInstructionsA := divideOnCubeUsingOverlappingOffCube(a, b, true) // only keep the overlap for 1 of them
-	//fmt.Printf("num instrucations A %d\n", len(newInstructionsA))
-	newInstructionsB := divideOnCubeUsingOverlappingOffCube(b, a, false)
-	//fmt.Printf("num instrucations B %d\n", len(newInstructionsB))
-	result := make([]*instruction, 0)
-	result = append(result, newInstructionsA...)
-	result = append(result, newInstructionsB...)
-
-	// for _, ins := range result {
-	// 	fmt.Printf("Result %+v\n", ins)
+	// cubes := make([]*helpers.Cube, 0)
+	// for _, ins := range currentInstructions {
+	// 	cubes = append(cubes, convertInstructionToCube(ins))
 	// }
-	return result
+	// fmt.Printf("Input cubes\n")
+	// for _, c := range cubes {
+	// 	fmt.Printf("Cube: %s\n", c.AsString())
+	// }
+	// answer := helpers.Volume_of_union(cubes)
+	// fmt.Printf("Answer %d\n", answer)
 }
+
+func convertInstructionToCube(ins *instruction) *helpers.Cube {
+	// NOTE cubes are not inclusive, so need to add 1
+	return helpers.NewCube(
+		helpers.NewInterval(ins.xStart, ins.xEnd+1),
+		helpers.NewInterval(ins.yStart, ins.yEnd+1),
+		helpers.NewInterval(ins.zStart, ins.zEnd+1),
+	)
+}
+
+// func findAndResolveNextPairOfOverlappingOnCubes(instructions []*instruction) (bool, []*instruction) {
+// 	//fmt.Printf("START LEN %d\n", len(instructions))
+// 	additionalInstructions, toDeleteIndexOne, toDeleteIndexTwo := findNextOverlappingOnInstructionAndSplitAsNeeded(instructions)
+// 	//fmt.Printf("Num additional %d\n", len(additionalInstructions))
+// 	if len(additionalInstructions) == 0 { // no more overlaps
+// 		return false, instructions
+// 	}
+// 	for i, ins := range instructions {
+// 		if i == toDeleteIndexOne || i == toDeleteIndexTwo {
+// 			continue
+// 		}
+// 		additionalInstructions = append(additionalInstructions, ins)
+// 	}
+
+// 	//fmt.Printf("FINISH len %d\n", len(additionalInstructions))
+// 	return true, additionalInstructions
+// }
+
+// // NOTE: Order should not matter at this point
+// func findNextOverlappingOnInstructionAndSplitAsNeeded(instructions []*instruction) ([]*instruction, int, int) {
+// 	for i, insI := range instructions {
+// 		for j, insJ := range instructions {
+// 			if i == j {
+// 				continue
+// 			}
+// 			if cubesHaveOverlap(insI, insJ) {
+// 				return resolveOverlappingOnCubes(insI, insJ), i, j
+// 			}
+// 		}
+// 	}
+// 	return []*instruction{}, -1, -1
+// }
+
+// func resolveOverlappingOnCubes(a, b *instruction) []*instruction {
+// 	if a.isEqual(b) {
+// 		return []*instruction{a}
+// 	}
+
+// 	//fmt.Printf("Comparing A %+v\n", a)
+// 	//fmt.Printf("Comparing B %+v\n", b)
+
+// 	newInstructionsA := divideOnCubeUsingOverlappingOffCube(a, b, true) // only keep the overlap for 1 of them
+// 	//fmt.Printf("num instrucations A %d\n", len(newInstructionsA))
+// 	newInstructionsB := divideOnCubeUsingOverlappingOffCube(b, a, false)
+// 	//fmt.Printf("num instrucations B %d\n", len(newInstructionsB))
+// 	result := make([]*instruction, 0)
+// 	result = append(result, newInstructionsA...)
+// 	result = append(result, newInstructionsB...)
+
+// 	// for _, ins := range result {
+// 	// 	fmt.Printf("Result %+v\n", ins)
+// 	// }
+// 	return result
+// }
 
 /*
 	1. Loop through all OFF instructions and convert them to ON instructions by:
@@ -197,7 +193,7 @@ func findNextOffInstructionAndApplyToPriorOns(instructions []*instruction) (bool
 		// we already know that otherCube is an ON cube, due to how we are iterating
 		// if it overlaps with the OFF cube, then break it up (to handle the OFF condition)
 		if findSharedVolumeBetweenTwoCuboids(firstOffCube, otherOnCube) > 0 {
-			newInstructions := divideOnCubeUsingOverlappingOffCube(otherOnCube, firstOffCube, false)
+			newInstructions := divideOnCubeUsingOverlappingOffCube(otherOnCube, firstOffCube)
 			result = append(result, newInstructions...)
 		} else {
 			result = append(result, otherOnCube) // still need to keep other ON cubes that don't overlap
